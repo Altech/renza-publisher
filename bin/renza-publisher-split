@@ -9,61 +9,87 @@ require 'renza-publisher/support'
 
 require 'fileutils'
 require 'colorize'
+require 'optparse'
+require 'time'
 
 include FileUtils
 include RenzaPublisher::Support
 
-# [TDDO] enrich command line option.
-src_video = ARGV.first
-disk_no = 1
-RenzaPublisher::VIDEO_FORMAT = File.extname(src_video)[1..-1]
+input = begin
+          args = Hash.new
 
-# # 1. create images
-puts "ffmpeg -i #{src_video} -r 1 -f image2 #{RenzaPublisher::IMAGE_FORMAT}"
-puts `ffmpeg -i #{src_video} -r 1 -f image2 #{RenzaPublisher::IMAGE_FORMAT}`
+          opt = OptionParser.new("Usage: renza-publisher-split -l <location> -t <time> [-d <disk-number>] <video-file>+")
+          opt.on('-l LOCATION','--location', 'Location where the video was shot. e.g. 秋葉原レジャーランド') {|s| args[:location] = s}
+          opt.on('-t TIME','--time', 'Date and time when the video was shot. e.g. "2012-10-03 15:00:00"') {|d| args[:time] = Time.parse(d)} 
+          opt.on('-d NUMBER','--disk-number', 'Use when there are multiple disks(start by 1)', atype: Integer){|n| args[:disk_number] = n; args[:diks_number] ||= 1}
+          opt.parse!(ARGV)
+          args[:videos] = ARGV.dup
 
-# # 2. choose sample images and mask them
-# [TODO] implement
-samples = {beginning: 50, win: 203, lose: 361}.map_values{|i| image_file(i)}
+          abort "撮影が行われた場所を-lオプションで指定してください" if args[:location].nil?
+          abort "撮影が行われた日時を-tオプションで指定してください" if args[:time].nil?
+          abort "動画ファイルを指定してください" if args[:videos].nil? or args[:videos].empty?
+          abort "指定したファイルは存在しません" if not args[:videos].all?{|file| File.exists? file}
+          abort "ディスクナンバーはファイルが一つの時に指定してください" if not ARGV.size > 1 and args[:disk_number]
+          
+          args
+        end
 
-# # 3. search begin-ends.
-i = 1
-result = Array.new
-loop do
-  candidate = image_file(i)
+args[:videos].each_with_index do |src_video, disk_number|
+  disk_number = args[:disk_number] if args[:disk_number]
 
-  break if not File.exists? candidate
-  
-  if    RenzaPublisher::ImageProcessor.is_same?(samples[:beginning], candidate, "mask2.jpeg")
-    puts "beginning: #{candidate}".blue
-    result << [i]
-    i += 70
-  elsif RenzaPublisher::ImageProcessor.is_same?(samples[:win],  candidate)
-    puts "win: #{candidate}".green
-    result.last << i if result.size > 0 and result.last.size == 1
-    i += 10
-  elsif RenzaPublisher::ImageProcessor.is_same?(samples[:lose], candidate, "mask.jpeg")
-    puts "lose: #{candidate}".green
-    # 1秒前を指定
-    result.last << i-1 if result.size > 0 and result.last.size == 1
-    i += 10
-  else
-    i += 1
+  RenzaPublisher::VIDEO_FORMAT = File.extname(src_video)[1..-1]
+
+  # # 1. create images
+  puts "ffmpeg -i #{src_video} -r 1 -f image2 #{RenzaPublisher::IMAGE_FORMAT}"
+  puts `ffmpeg -i #{src_video} -r 1 -f image2 #{RenzaPublisher::IMAGE_FORMAT}`
+
+  # # 2. choose sample images and mask them
+  # [TODO] implement
+  samples = {beginning: 50, win: 203, lose: 361}.map_values{|i| image_file(i)}
+
+  # # 3. search begin-ends.
+  i = 1
+  result = Array.new
+  loop do
+    candidate = image_file(i)
+
+    break if not File.exists? candidate
+    break if i > 700 # under-development
+    
+    if    RenzaPublisher::ImageProcessor.is_same?(samples[:beginning], candidate, "mask2.jpeg")
+      puts "beginning: #{candidate}".blue
+      result << [i]
+      i += 70
+    elsif RenzaPublisher::ImageProcessor.is_same?(samples[:win],  candidate)
+      puts "win: #{candidate}".green
+      result.last << i if result.size > 0 and result.last.size == 1
+      i += 10
+    elsif RenzaPublisher::ImageProcessor.is_same?(samples[:lose], candidate, "mask.jpeg")
+      puts "lose: #{candidate}".green
+      # 1秒前を指定
+      result.last << i-1 if result.size > 0 and result.last.size == 1
+      i += 10
+    else
+      i += 1
+    end
   end
-end
 
-pp result
+  pp result
 
-File.write("game_time_disk#{disk_no}.txt", result.pretty_inspect)
+  File.write("game_time_disk#{disk_number}.txt", result.pretty_inspect)
+  result = eval(File.read "game_time_disk1.txt")
 
-# # 4. split the movie.
-result.select{|a| a.size == 2}.each_with_index do |times, i|
-  from, to = times
-  thumbnail = image_file(from+5)
-  
-  rm video_file(i+1) if File.exists? video_file(i+1)
-  cp thumbnail, thumbnail_file(i+1)
-  
-  puts "ffmpeg -i \"#{src_video}\" -ss #{from-3} -t #{to-from+1} \"output#{i+1}.m4v\""
-  puts `ffmpeg -i "#{src_video}"   -ss #{from-3} -t #{to-from+1}  "output#{i+1}.m4v"`
+  # # 4. split the movie.
+  result.select{|a| a.size == 2}.each_with_index do |times, i|
+    from, to = times
+    thumbnail = image_file(from+5)
+    
+    rm video_file(i+1) if File.exists? video_file(i+1)
+    cp thumbnail, thumbnail_file(i+1)
+    
+    puts "ffmpeg -i \"#{src_video}\" -ss #{from-3} -t #{to-from+1} \"#{video_file(i+1)}\""
+    puts `ffmpeg -i "#{src_video}"   -ss #{from-3} -t #{to-from+1}  "#{video_file(i+1)}"`
+
+  end
+
 end
