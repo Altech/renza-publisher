@@ -1,0 +1,4 @@
+
+class RenzaPublisher
+  
+end
