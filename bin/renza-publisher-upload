@@ -1,0 +1,65 @@
+#!/usr/bin/env ruby
+# -*- coding: utf-8 -*-
+
+$:.unshift File.expand_path('../lib', __dir__)
+
+require 'renza-publisher'
+
+require 'optparse'
+
+require 'google/api_client'
+
+require 'pry'
+
+input = begin
+          args = Hash.new
+
+          opt = OptionParser.new("Usage: renza-publisher-upload [-r <video-number>>] <data-directory>")
+          opt.on('-t TARGET-VIDEO-NUMBER-OR-RANGE','--target', 'Specify videos to upload. It is number or range of number. e.g. 4..6') {|s|
+            args[:target] = case s
+                            when /^\d+$/
+                              s.to_i
+                            when /^\d+\.\.(\.)?\d+$/
+                              eval s
+                            else
+                              abort "数値またはその範囲を指定してください"
+                            end
+	  }
+          opt.parse!(ARGV)
+          args[:data_directory] = ARGV.first
+          
+          abort "指定したディレクトリは存在しません" if File.exists? args[:data_directory]
+          
+          args
+        end
+
+
+# Authorization
+client = Google::APIClient.new(:application_name => $0, :application_version => '1.0')
+youtube = client.discovered_api('youtube', 'v3')
+auth_util = OAuthHelper.new(RenzaPublisher::YOUTUBE_READ_WRITE_SCOPE)
+client.authorization = auth_util.authorize()
+
+begin
+  # # upload video
+  
+  # [TODO] implement
+  
+  # # set thumbnail
+  res = client.execute!(api_method: youtube.thumbnails.set, parameters: {videoId: '8lgusqdc8iU', uploadType: 'resumable'})
+
+  uri = URI.parse(res.headers['location'])
+
+  require 'net/http'
+  require 'net/https'
+  https = Net::HTTP.new(uri.host, 443)
+  https.use_ssl = true
+  https.verify_mode = OpenSSL::SSL::VERIFY_NONE
+  res2 = https.post(
+                    uri.path + '?' + uri.query,
+                    File.read('/Users/Altech/Desktop/work2/output7_list.jpeg'),
+                    {"Content-Type" => "images/jpeg"})
+  binding.pry
+rescue => e
+  binding.pry
+end
