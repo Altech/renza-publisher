@@ -5,15 +5,18 @@ $:.unshift File.expand_path('../lib', __dir__)
 
 require 'renza-publisher'
 require 'renza-publisher/image-processor'
-require 'renza-publisher/support'
+require 'renza-publisher/path'
 
 require 'fileutils'
-require 'colorize'
+require 'tmpdir'
 require 'optparse'
 require 'time'
+require 'pp'
+
+require 'colorize'
+
 
 include FileUtils
-include RenzaPublisher::Support
 
 input = begin
           args = Hash.new
@@ -34,38 +37,42 @@ input = begin
           args
         end
 
-args[:videos].each_with_index do |src_video, disk_number|
-  disk_number = args[:disk_number] if args[:disk_number]
+under_development = true
 
-  RenzaPublisher::VIDEO_FORMAT = File.extname(src_video)[1..-1]
+args[:videos].each_with_index do |src_video, disk_number|
+  tmp_dir = !under_development ? Dir.mktmpdir : "/Users/Altech/dev/renza/publisher/test-data/working"
+  output_dir = "renza-#{input[:time].strftime("%Y-%m-%d")}"
+  disk_number = args[:disk_number] if args[:disk_number]
+  
+  path = RenzaPublisher::Path.new(tmp_dir, "renza-#{input[:time].strftime("%Y-%m-%d")}", File.extname(src_video))
 
   # # 1. create images
-  puts "ffmpeg -i #{src_video} -r 1 -f image2 #{RenzaPublisher::IMAGE_FORMAT}"
-  puts `ffmpeg -i #{src_video} -r 1 -f image2 #{RenzaPublisher::IMAGE_FORMAT}`
+  puts "ffmpeg -i #{src_video} -r 1 -f image2 #{tmp_dir}/#{RenzaPublisher::Path::IMAGE_FORMAT}" unless under_development
+  puts `ffmpeg -i #{src_video} -r 1 -f image2 #{tmp_dir}/#{RenzaPublisher::Path::IMAGE_FORMAT}` unless under_development
 
   # # 2. choose sample images and mask them
   # [TODO] implement
-  samples = {beginning: 50, win: 203, lose: 361}.map_values{|i| image_file(i)}
+  samples = {beginning: 50, ending_win: 203, ending_lose: 361}.map_values{|i| path.image_file(i)}
 
   # # 3. search begin-ends.
   i = 1
   result = Array.new
   loop do
-    candidate = image_file(i)
+    candidate = path.image_file(i)
 
     break if not File.exists? candidate
-    break if i > 700 # under-development
+    break if i > 500 and under_development
     
-    if    RenzaPublisher::ImageProcessor.is_same?(samples[:beginning], candidate, "mask2.jpeg")
+    if    RenzaPublisher::ImageProcessor.is_same?(samples[:beginning],   candidate, path.masking_file_for_beggining)
       puts "beginning: #{candidate}".blue
       result << [i]
       i += 70
-    elsif RenzaPublisher::ImageProcessor.is_same?(samples[:win],  candidate)
-      puts "win: #{candidate}".green
+    elsif RenzaPublisher::ImageProcessor.is_same?(samples[:ending_win],  candidate)
+      puts "ending(win): #{candidate}".green
       result.last << i if result.size > 0 and result.last.size == 1
       i += 10
-    elsif RenzaPublisher::ImageProcessor.is_same?(samples[:lose], candidate, "mask.jpeg")
-      puts "lose: #{candidate}".green
+    elsif RenzaPublisher::ImageProcessor.is_same?(samples[:ending_lose], candidate, path.masking_file_for_losing)
+      puts "ending(lose): #{candidate}".green
       # 1秒前を指定
       result.last << i-1 if result.size > 0 and result.last.size == 1
       i += 10
@@ -74,22 +81,21 @@ args[:videos].each_with_index do |src_video, disk_number|
     end
   end
 
-  pp result
+  File.write(path.time_table_file(disk_number), result.pretty_inspect)
+  result = eval(File.read path.time_table_file(disk_number))
 
-  File.write("game_time_disk#{disk_number}.txt", result.pretty_inspect)
-  result = eval(File.read "game_time_disk1.txt")
-
-  # # 4. split the movie.
+  # # 4. split the movie.  
   result.select{|a| a.size == 2}.each_with_index do |times, i|
     from, to = times
-    thumbnail = image_file(from+5)
+    thumbnail = path.image_file(from+5)
     
-    rm video_file(i+1) if File.exists? video_file(i+1)
-    cp thumbnail, thumbnail_file(i+1)
+    rm path.video_file(i+1) if File.exists? path.video_file(i+1)
+    cp thumbnail, path.thumbnail_file(i+1)
     
-    puts "ffmpeg -i \"#{src_video}\" -ss #{from-3} -t #{to-from+1} \"#{video_file(i+1)}\""
-    puts `ffmpeg -i "#{src_video}"   -ss #{from-3} -t #{to-from+1}  "#{video_file(i+1)}"`
+    puts "ffmpeg -i \"#{src_video}\" -ss #{from-3} -t #{to-from+1} \"#{path.video_file(i+1)}\""
+    puts `ffmpeg -i "#{src_video}"   -ss #{from-3} -t #{to-from+1}  "#{path.video_file(i+1)}"`
 
   end
-
+  
+  File.remove_entry_secure(tmp_dir) unless under_development
 end

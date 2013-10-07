@@ -19,7 +19,7 @@
 
 入力として、動画データ以外に場所、撮影会の開始日時（2014/10/03 15:30）、何番目のDVDかを与える。
 
-出力として、<renza2_撮影会の開始日時>ディレクトリに metadata.json（場所） , vol1.m4v, vol1_thumb.jpeg ... のようになる。
+出力として、<renza_撮影会の開始日時>ディレクトリに metadata.json（場所） , vol1.m4v, vol1_thumb.jpeg ... のようになる。
 
 ## 4の部分
 Youtube Data API を利用。動画を上げる以外に、メタデータを与えてやる。
