@@ -3,7 +3,8 @@ class RenzaPublisher
     require 'pathname'
 
     MASKING_FILE_FORMAT = "mask%d.jpg"
-    TIME_TABLE_FORMAT = "time_table_disk%d.txt"
+    TIME_TABLE_FORMAT = "time_table_disk%d.json"
+    METADATA = "metadata.json"
     IMAGE_FORMAT = "image-%04d.jpg"
     THUMBNAIL_FORMAT = "vol%03d_thumb.jpg"
     VIDEO_FORMAT_BASE = "vol%03d"
@@ -33,6 +34,10 @@ class RenzaPublisher
       sprintf((@output_dir + TIME_TABLE_FORMAT).to_s, disk_number)
     end
 
+    def metadata_file
+      (@output_dir + METADATA).to_s
+    end
+
     def masking_file_for_beggining
       sprintf((@working_dir + MASKING_FILE_FORMAT).to_s, 1)
     end
@@ -40,5 +45,6 @@ class RenzaPublisher
     def masking_file_for_losing
       sprintf((@working_dir + MASKING_FILE_FORMAT).to_s, 2)
     end
+
   end
 end
