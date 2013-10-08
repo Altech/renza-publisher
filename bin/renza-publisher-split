@@ -8,7 +8,6 @@ require 'renza-publisher/image-processor'
 require 'renza-publisher/path'
 
 require 'fileutils'
-require 'tmpdir'
 require 'optparse'
 require 'time'
 require 'pp'
@@ -41,22 +40,24 @@ input = begin
 under_development = false
 
 args[:videos].each_with_index do |src_video, disk_number_minus_one|
-  tmp_dir = !under_development ? Dir.mktmpdir : "/Users/Altech/dev/renza/publisher/test-data/working"
-  output_dir = "renza-#{input[:time].strftime("%Y-%m-%d")}"
   disk_number = args[:disk_number] ? args[:disk_number] : disk_number_minus_one + 1
+  output_dir  = "renza-#{input[:time].strftime("%Y-%m-%d")}"
+  working_dir = output_dir + "/images-disk#{disk_number}"
   
-  path = RenzaPublisher::Path.new(tmp_dir, "renza-#{input[:time].strftime("%Y-%m-%d")}", File.extname(src_video))
+  path = RenzaPublisher::Path.new(working_dir, output_dir, File.extname(src_video))
 
   # # 1. create images
-  puts "ffmpeg -i #{src_video} -r 1 -f image2 #{tmp_dir}/#{RenzaPublisher::Path::IMAGE_FORMAT}" unless under_development
-  puts `ffmpeg -i #{src_video} -r 1 -f image2 #{tmp_dir}/#{RenzaPublisher::Path::IMAGE_FORMAT}` unless under_development
+  unless Dir.exists? working_dir and Dir.entries(working_dir).include? path.image_file(1)
+    puts "ffmpeg -i #{src_video} -r 1 -f image2 #{working_dir}/#{RenzaPublisher::Path::IMAGE_FORMAT}" unless under_development
+    puts `ffmpeg -i #{src_video} -r 1 -f image2 #{working_dir}/#{RenzaPublisher::Path::IMAGE_FORMAT}` unless under_development
+  end
 
   # # 2. choose sample images and mask them
   unless Dir.exists?(path.sample_dir) and path.sample_dir_include_all_samples?
     mkdir path.sample_dir unless Dir.exists?(path.sample_dir)
     puts "Please select sample files and copy it to samples directory."
     puts "After that, rename them to #{path.sample_basenames.map{|s| s + ".jpg"}.join(', ')}."
-    `open #{path.sample_dir}`; sleep 0.5; `open #{tmp_dir}`
+    `open #{path.sample_dir}`; sleep 0.5; `open #{working_dir}`
     sleep 0.5 until path.sample_dir_include_all_samples?
   end
   samples = Hash[path.sample_basenames.map(&:to_sym).zip path.sample_files]
@@ -110,5 +111,4 @@ args[:videos].each_with_index do |src_video, disk_number_minus_one|
 
   File.write(path.metadata_file, {location: args[:location], time: args[:time]}.to_json)
   
-  rm_r tmp_dir unless under_development
 end
