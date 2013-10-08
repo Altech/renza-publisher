@@ -7,6 +7,10 @@ module RenzaPublisher::ImageProcessor
   def self.is_same?(query_path, src_path, mask_path = "", threshold = 0.001)
     query = Magick::ImageList.new(query_path).first
     src = Magick::ImageList.new(src_path).first
+
+    if query.columns != src.columns or query.rows != src.rows
+      raise "Sizes of the sample image and query image must be equal"
+    end
     
     if mask_path != ""
       masks = Magick::ImageList.new(mask_path)
