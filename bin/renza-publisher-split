@@ -18,27 +18,25 @@ require 'colorize'
 
 include FileUtils
 
-input = begin
-          args = Hash.new
+begin
+  input = Hash.new
 
-          opt = OptionParser.new("使い方: renza-publisher-split -l <location> -t <time> [-d <disk-number>] <video-file>+")
-          opt.on('-l LOCATION','--location', '動画が撮影された場所. e.g. 秋葉原レジャーランド') {|s| args[:location] = s}
-          opt.on('-t TIME','--time', '動画が撮影された日時. e.g. "2012-10-03 15:00:00"') {|d| args[:time] = Time.parse(d)} 
-          opt.on('-d NUMBER','--disk-number', '特定のディスクを処理する場合のディスク番号（1始まり）'){|n| args[:disk_number] = n.to_i if n}
-          opt.parse!(ARGV)
-          args[:videos] = ARGV.dup
+  opt = OptionParser.new("使い方: renza-publisher-split -l <location> -t <time> [-d <disk-number>] <video-file>+")
+  opt.on('-l LOCATION','--location', '動画が撮影された場所. e.g. 秋葉原レジャーランド') {|s| input[:location] = s}
+  opt.on('-t TIME','--time', '動画が撮影された日時. e.g. "2012-10-03 15:00:00"') {|d| input[:time] = Time.parse(d)} 
+  opt.on('-d NUMBER','--disk-number', '特定のディスクを処理する場合のディスク番号（1始まり）'){|n| input[:disk_number] = n.to_i if n}
+  opt.parse!(ARGV)
+  input[:videos] = ARGV.dup
 
-          abort "撮影が行われた場所を-lオプションで指定してください" if args[:location].nil?
-          abort "撮影が行われた日時を-tオプションで指定してください" if args[:time].nil?
-          abort "動画ファイルを指定してください" if args[:videos].nil? or args[:videos].empty?
-          abort "指定したファイルは存在しません" if not args[:videos].all?{|file| File.exists? file}
-          abort "ディスクナンバーはファイルが一つの時に指定してください" if ARGV.size > 1 and args[:disk_number]
-          
-          args
-        end
+  abort "撮影が行われた場所を-lオプションで指定してください" if input[:location].nil?
+  abort "撮影が行われた日時を-tオプションで指定してください" if input[:time].nil?
+  abort "動画ファイルを指定してください" if input[:videos].nil? or input[:videos].empty?
+  abort "指定したファイルは存在しません" if not input[:videos].all?{|file| File.exists? file}
+  abort "ディスクナンバーはファイルが一つの時に指定してください" if ARGV.size > 1 and input[:disk_number]
+end
 
-args[:videos].each_with_index do |src_video, disk_number_minus_one|
-  disk_number = args[:disk_number] ? args[:disk_number] : disk_number_minus_one + 1
+input[:videos].each_with_index do |src_video, disk_number_minus_one|
+  disk_number = input[:disk_number] ? input[:disk_number] : disk_number_minus_one + 1
   output_dir  = "renza-#{input[:time].strftime("%Y-%m-%d")}"
   working_dir = output_dir + "/images-disk#{disk_number}"
   
@@ -106,6 +104,6 @@ args[:videos].each_with_index do |src_video, disk_number_minus_one|
 
   end
 
-  File.write(path.metadata_file, {location: args[:location], time: args[:time]}.to_json)
+  File.write(path.metadata_file, {location: input[:location], time: input[:time]}.to_json)
   
 end
