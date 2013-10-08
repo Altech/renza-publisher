@@ -21,10 +21,10 @@ include FileUtils
 input = begin
           args = Hash.new
 
-          opt = OptionParser.new("Usage: renza-publisher-split -l <location> -t <time> [-d <disk-number>] <video-file>+")
-          opt.on('-l LOCATION','--location', 'Location where the video was shot. e.g. 秋葉原レジャーランド') {|s| args[:location] = s}
-          opt.on('-t TIME','--time', 'Date and time when the video was shot. e.g. "2012-10-03 15:00:00"') {|d| args[:time] = Time.parse(d)} 
-          opt.on('-d NUMBER','--disk-number', 'Use when there are multiple disks(start by 1)'){|n| args[:disk_number] = n.to_i if n}
+          opt = OptionParser.new("使い方: renza-publisher-split -l <location> -t <time> [-d <disk-number>] <video-file>+")
+          opt.on('-l LOCATION','--location', '動画が撮影された場所. e.g. 秋葉原レジャーランド') {|s| args[:location] = s}
+          opt.on('-t TIME','--time', '動画が撮影された日時. e.g. "2012-10-03 15:00:00"') {|d| args[:time] = Time.parse(d)} 
+          opt.on('-d NUMBER','--disk-number', '特定のディスクを処理する場合のディスク番号（1始まり）'){|n| args[:disk_number] = n.to_i if n}
           opt.parse!(ARGV)
           args[:videos] = ARGV.dup
 
@@ -55,8 +55,8 @@ args[:videos].each_with_index do |src_video, disk_number_minus_one|
   # # 2. choose sample images and mask them
   unless Dir.exists?(path.sample_dir) and path.sample_dir_include_all_samples?
     mkdir path.sample_dir unless Dir.exists?(path.sample_dir)
-    puts "Please select sample files and copy it to samples directory."
-    puts "After that, rename them to #{path.sample_basenames.map{|s| s + ".jpg"}.join(', ')}."
+    puts "imagesディレクトリからサンプル画像を3つsamplesディレクトリにコピーしてください。"
+    puts "そのあと、それぞれを #{path.sample_basenames.map{|s| s + ".jpg"}.join(', ')} にリネームしてください。"
     `open #{path.sample_dir}`; sleep 0.5; `open #{working_dir}`
     sleep 0.5 until path.sample_dir_include_all_samples?
   end
