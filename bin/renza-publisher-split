@@ -33,7 +33,7 @@ input = begin
           abort "撮影が行われた日時を-tオプションで指定してください" if args[:time].nil?
           abort "動画ファイルを指定してください" if args[:videos].nil? or args[:videos].empty?
           abort "指定したファイルは存在しません" if not args[:videos].all?{|file| File.exists? file}
-          abort "ディスクナンバーはファイルが一つの時に指定してください" if not ARGV.size > 1 and args[:disk_number]
+          abort "ディスクナンバーはファイルが一つの時に指定してください" if ARGV.size > 1 and args[:disk_number]
           
           args
         end
