@@ -18,6 +18,9 @@ module RenzaPublisher::ImageProcessor
 
     normalized_mean_error = query.difference(src)[1]
     result = normalized_mean_error <= threshold
+    
+    # explicitly free memory
+    [query, src, mask].each do |img| img.destroy! if img end
 
     return result
   end
