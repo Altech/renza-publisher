@@ -40,10 +40,10 @@ input = begin
 
 under_development = false
 
-args[:videos].each_with_index do |src_video, disk_number|
+args[:videos].each_with_index do |src_video, disk_number_minus_one|
   tmp_dir = !under_development ? Dir.mktmpdir : "/Users/Altech/dev/renza/publisher/test-data/working"
   output_dir = "renza-#{input[:time].strftime("%Y-%m-%d")}"
-  disk_number = args[:disk_number] ? args[:disk_number] : 1
+  disk_number = args[:disk_number] ? args[:disk_number] : disk_number_minus_one + 1
   
   path = RenzaPublisher::Path.new(tmp_dir, "renza-#{input[:time].strftime("%Y-%m-%d")}", File.extname(src_video))
 
@@ -92,15 +92,19 @@ args[:videos].each_with_index do |src_video, disk_number|
   File.write(path.time_table_file(disk_number), result.to_json)
 
   # # 4. split the movie.
-  result.select{|a| a.size == 2}.each_with_index do |times, i|
-    from, to = times
+  base = (1..(disk_number-1)).map{|previous_disk_number|
+    abort "#{previous_disk_number}番目のディスクを先に処理してください" if not File.exists? path.time_table_file(previous_disk_number)
+    JSON.parse(File.read(path.time_table_file(previous_disk_number))).select{|a| a.size == 3}.size
+  }.reduce(&:+)
+  result.select{|a| a.size == 3}.each_with_index do |times, i|
+    from, to, _ = times
     thumbnail = path.image_file(from+5)
     
-    rm path.video_file(i+1) if File.exists? path.video_file(i+1)
-    cp thumbnail, path.thumbnail_file(i+1)
+    rm path.video_file(base+i+1) if File.exists? path.video_file(base+i+1)
+    cp thumbnail, path.thumbnail_file(base+i+1)
     
-    puts "ffmpeg -i \"#{src_video}\" -ss #{from-3} -t #{to-from+1} \"#{path.video_file(i+1)}\""
-    puts `ffmpeg -i "#{src_video}"   -ss #{from-3} -t #{to-from+1}  "#{path.video_file(i+1)}"`
+    puts "ffmpeg -i \"#{src_video}\" -ss #{from-3} -t #{to-from+1} \"#{path.video_file(base+i+1)}\""
+    puts `ffmpeg -i "#{src_video}"   -ss #{from-3} -t #{to-from+1}  "#{path.video_file(base+i+1)}"`
 
   end
 
