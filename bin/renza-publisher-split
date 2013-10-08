@@ -25,7 +25,7 @@ input = begin
           opt = OptionParser.new("Usage: renza-publisher-split -l <location> -t <time> [-d <disk-number>] <video-file>+")
           opt.on('-l LOCATION','--location', 'Location where the video was shot. e.g. 秋葉原レジャーランド') {|s| args[:location] = s}
           opt.on('-t TIME','--time', 'Date and time when the video was shot. e.g. "2012-10-03 15:00:00"') {|d| args[:time] = Time.parse(d)} 
-          opt.on('-d NUMBER','--disk-number', 'Use when there are multiple disks(start by 1)', atype: Integer){|n| args[:disk_number] = n; args[:diks_number] ||= 1}
+          opt.on('-d NUMBER','--disk-number', 'Use when there are multiple disks(start by 1)'){|n| args[:disk_number] = n.to_i if n}
           opt.parse!(ARGV)
           args[:videos] = ARGV.dup
 
@@ -43,7 +43,7 @@ under_development = false
 args[:videos].each_with_index do |src_video, disk_number|
   tmp_dir = !under_development ? Dir.mktmpdir : "/Users/Altech/dev/renza/publisher/test-data/working"
   output_dir = "renza-#{input[:time].strftime("%Y-%m-%d")}"
-  disk_number = args[:disk_number] if args[:disk_number]
+  disk_number = args[:disk_number] ? args[:disk_number] : 1
   
   path = RenzaPublisher::Path.new(tmp_dir, "renza-#{input[:time].strftime("%Y-%m-%d")}", File.extname(src_video))
 
@@ -90,9 +90,8 @@ args[:videos].each_with_index do |src_video, disk_number|
   end
 
   File.write(path.time_table_file(disk_number), result.to_json)
-  result = JSON.parse(File.read path.time_table_file(disk_number))
 
-  # # 4. split the movie.  
+  # # 4. split the movie.
   result.select{|a| a.size == 2}.each_with_index do |times, i|
     from, to = times
     thumbnail = path.image_file(from+5)
