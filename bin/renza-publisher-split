@@ -37,8 +37,6 @@ input = begin
           args
         end
 
-under_development = false
-
 args[:videos].each_with_index do |src_video, disk_number_minus_one|
   disk_number = args[:disk_number] ? args[:disk_number] : disk_number_minus_one + 1
   output_dir  = "renza-#{input[:time].strftime("%Y-%m-%d")}"
@@ -48,8 +46,8 @@ args[:videos].each_with_index do |src_video, disk_number_minus_one|
 
   # # 1. create images
   unless Dir.exists? working_dir and Dir.entries(working_dir).include? path.image_file(1)
-    puts "ffmpeg -i #{src_video} -r 1 -f image2 #{working_dir}/#{RenzaPublisher::Path::IMAGE_FORMAT}" unless under_development
-    puts `ffmpeg -i #{src_video} -r 1 -f image2 #{working_dir}/#{RenzaPublisher::Path::IMAGE_FORMAT}` unless under_development
+    puts "ffmpeg -i #{src_video} -r 1 -f image2 #{working_dir}/#{RenzaPublisher::Path::IMAGE_FORMAT}"
+    puts `ffmpeg -i #{src_video} -r 1 -f image2 #{working_dir}/#{RenzaPublisher::Path::IMAGE_FORMAT}`
   end
 
   # # 2. choose sample images and mask them
@@ -70,7 +68,6 @@ args[:videos].each_with_index do |src_video, disk_number_minus_one|
     candidate = path.image_file(i)
 
     break if not File.exists? candidate
-    break if i > 500 and under_development
     
     if    RenzaPublisher::ImageProcessor.is_same?(samples[:beginning],   candidate, path.masking_file_for_beginning)
       puts "beginning: #{candidate}".blue
