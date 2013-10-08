@@ -2,6 +2,8 @@ class RenzaPublisher
   class Path
     require 'pathname'
 
+    SAMPLE_DIR = "samples"
+    SAMPLE_BASENAMES = %w[beginning ending_win ending_lose]
     MASKING_FILE_FORMAT = "mask%d.jpg"
     TIME_TABLE_FORMAT = "time_table_disk%d.json"
     METADATA = "metadata.json"
@@ -38,13 +40,31 @@ class RenzaPublisher
       (@data_dir + METADATA).to_s
     end
 
-    def masking_file_for_beggining
+    def masking_file_for_beginning
       sprintf((@working_dir + MASKING_FILE_FORMAT).to_s, 1)
     end
     
     def masking_file_for_losing
       sprintf((@working_dir + MASKING_FILE_FORMAT).to_s, 2)
     end
+
+    def sample_dir
+      (@data_dir + SAMPLE_DIR).to_s
+    end
+
+    def sample_dir_include_all_samples?
+      SAMPLE_BASENAMES.map{|s| s + ".jpg"}.all?{|sample|
+        Dir.entries(sample_dir).include? sample
+      }
+    end
+
+    def sample_basenames
+      SAMPLE_BASENAMES
+    end
+
+    def sample_files
+      SAMPLE_BASENAMES.map{|s| @data_dir + SAMPLE_DIR + (s + '.jpg')}.map(&:to_s)
+    end      
 
   end
 end

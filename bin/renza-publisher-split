@@ -38,7 +38,7 @@ input = begin
           args
         end
 
-under_development = true
+under_development = false
 
 args[:videos].each_with_index do |src_video, disk_number|
   tmp_dir = !under_development ? Dir.mktmpdir : "/Users/Altech/dev/renza/publisher/test-data/working"
@@ -52,8 +52,15 @@ args[:videos].each_with_index do |src_video, disk_number|
   puts `ffmpeg -i #{src_video} -r 1 -f image2 #{tmp_dir}/#{RenzaPublisher::Path::IMAGE_FORMAT}` unless under_development
 
   # # 2. choose sample images and mask them
-  # [TODO] implement
-  samples = {beginning: 50, ending_win: 203, ending_lose: 361}.map_values{|i| path.image_file(i)}
+  unless Dir.exists?(path.sample_dir) and path.sample_dir_include_all_samples?
+    mkdir path.sample_dir unless Dir.exists?(path.sample_dir)
+    puts "Please select sample files and copy it to samples directory."
+    puts "After that, rename them to #{path.sample_basenames.map{|s| s + ".jpg"}.join(', ')}."
+    `open #{path.sample_dir}`; sleep 0.5; `open #{tmp_dir}`
+    sleep 0.5 until path.sample_dir_include_all_samples?
+  end
+  samples = Hash[path.sample_basenames.map(&:to_sym).zip path.sample_files]
+  RenzaPublisher::ImageProcessor.create_images_for_masking(path)
 
   # # 3. search begin-ends.
   i = 1
@@ -64,7 +71,7 @@ args[:videos].each_with_index do |src_video, disk_number|
     break if not File.exists? candidate
     break if i > 500 and under_development
     
-    if    RenzaPublisher::ImageProcessor.is_same?(samples[:beginning],   candidate, path.masking_file_for_beggining)
+    if    RenzaPublisher::ImageProcessor.is_same?(samples[:beginning],   candidate, path.masking_file_for_beginning)
       puts "beginning: #{candidate}".blue
       result << [i]
       i += 70
@@ -100,5 +107,5 @@ args[:videos].each_with_index do |src_video, disk_number|
 
   File.write(path.metadata_file, {location: args[:location], time: args[:time]}.to_json)
   
-  File.remove_entry_secure(tmp_dir) unless under_development
+  rm_r tmp_dir unless under_development
 end
