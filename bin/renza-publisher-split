@@ -77,12 +77,12 @@ args[:videos].each_with_index do |src_video, disk_number|
       i += 70
     elsif RenzaPublisher::ImageProcessor.is_same?(samples[:ending_win],  candidate)
       puts "ending(win): #{candidate}".green
-      result.last << i if result.size > 0 and result.last.size == 1
+      result.last += [i,:win] if result.size > 0 and result.last.size == 1
       i += 10
     elsif RenzaPublisher::ImageProcessor.is_same?(samples[:ending_lose], candidate, path.masking_file_for_losing)
       puts "ending(lose): #{candidate}".green
       # 1秒前を指定
-      result.last << i-1 if result.size > 0 and result.last.size == 1
+      result.last += [i-1,:lose] if result.size > 0 and result.last.size == 1
       i += 10
     else
       i += 1

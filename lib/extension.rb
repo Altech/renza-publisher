@@ -10,3 +10,9 @@ class Hash
     ret
   end
 end
+
+class Array
+  def last=(o)
+    self[-1] = o
+  end
+end
