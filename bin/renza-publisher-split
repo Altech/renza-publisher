@@ -55,6 +55,7 @@ input[:videos].each_with_index do |src_video, disk_number_minus_one|
     puts "そのあと、それぞれを #{path.sample_basenames.map{|s| s + ".jpg"}.join(', ')} にリネームしてください。"
     `open #{path.sample_dir}`; sleep 0.5; `open #{working_dir}`
     sleep 0.5 until path.sample_dir_include_all_samples?
+    puts "サンプル画像を確認しました。"
   end
   samples = Hash[path.sample_basenames.map(&:to_sym).zip path.sample_files]
   RenzaPublisher::ImageProcessor.create_images_for_masking(path)
