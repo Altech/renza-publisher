@@ -43,7 +43,7 @@ input[:videos].each_with_index do |src_video, disk_number_minus_one|
   path = RenzaPublisher::Path.new(working_dir, output_dir, File.extname(src_video))
 
   # # 1. create images
-  unless Dir.exists? working_dir and Dir.entries(working_dir).include? path.image_file(1)
+  unless Dir.exists? working_dir and File.exists? path.image_file(1)
     puts "ffmpeg -i #{src_video} -r 1 -f image2 #{working_dir}/#{RenzaPublisher::Path::IMAGE_FORMAT}"
     puts `ffmpeg -i #{src_video} -r 1 -f image2 #{working_dir}/#{RenzaPublisher::Path::IMAGE_FORMAT}`
   end
