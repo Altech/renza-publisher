@@ -95,7 +95,7 @@ input[:videos].each_with_index do |src_video, disk_number_minus_one|
   base = (1..(disk_number-1)).map{|previous_disk_number|
     abort "#{previous_disk_number}番目のディスクを先に処理してください" if not File.exists? path.time_table_file(previous_disk_number)
     JSON.parse(File.read(path.time_table_file(previous_disk_number))).select{|a| a.size == 3}.size
-  }.reduce(&:+)
+  }.reduce(0,&:+)
   result.select{|a| a.size == 3}.each_with_index do |times, i|
     from, to, _ = times
     thumbnail = path.image_file(from+5)
