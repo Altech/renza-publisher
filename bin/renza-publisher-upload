@@ -70,13 +70,13 @@ files.each do |file|
     video_number, video_extension = file[/^vol(\d+)\.(.+)/,1].to_i, file[/^vol(\d+)(\..+)/,2]
     path = RenzaPublisher::Path.new('/usr/tmp', input[:data_directory], video_extension)
     metadata = JSON.parse(File.read path.metadata_file)
-    location, time = metadata['location'], Time.parse(metadata['time'])
+    location, time, win_or_lose = metadata['location'], Time.parse(metadata['time']), metadata['win_or_lose']
 
     # # upload video
     body = {
       snippet: {
         title: "【連ザ2】#{time.strftime("%Y年%m月%d日")} #{location} Vol.#{video_number}",
-        tags: %w[連ザ 連ザ2 対戦動画 対戦会],
+        tags: %w[連ザ 連ザ2 対戦動画 対戦会] << win_or_lose[video_number-1],
         categoryId: 20,
         description: if input[:description]
                        <<DESC
@@ -117,9 +117,8 @@ DESC
     https.verify_mode = OpenSSL::SSL::VERIFY_NONE
     thumbnail_post_response = https.post(uri.path + '?' + uri.query, File.read(path.thumbnail_file(video_number)), {"Content-Type" => "images/jpeg"})
 
+    puts "All videos are uploaded.".green
   rescue => e
     binding.pry
   end
 end
-
-puts "All videos are uploaded.".green
