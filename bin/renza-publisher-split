@@ -42,11 +42,11 @@ input[:videos].each_with_index do |src_video, disk_number_minus_one|
   
   path = RenzaPublisher::Path.new(working_dir, output_dir, File.extname(src_video))
 
-  # # # 1. create images
-  # unless Dir.exists? working_dir and File.exists? path.image_file(1)
-  #   puts "ffmpeg -i #{src_video} -r 1 -f image2 #{working_dir}/#{RenzaPublisher::Path::IMAGE_FORMAT}"
-  #   puts `ffmpeg -i #{src_video} -r 1 -f image2 #{working_dir}/#{RenzaPublisher::Path::IMAGE_FORMAT}`
-  # end
+  # # 1. create images
+  unless Dir.exists? working_dir and File.exists? path.image_file(1)
+    puts "ffmpeg -i #{src_video} -r 1 -f image2 #{working_dir}/#{RenzaPublisher::Path::IMAGE_FORMAT}"
+    puts `ffmpeg -i #{src_video} -r 1 -f image2 #{working_dir}/#{RenzaPublisher::Path::IMAGE_FORMAT}`
+  end
 
   # # 2. choose sample images and mask them
   unless Dir.exists?(path.sample_dir) and path.sample_dir_include_all_samples?
@@ -108,7 +108,7 @@ input[:videos].each_with_index do |src_video, disk_number_minus_one|
 
   end
 
-  metadata = JSON.parse(File.read(path.metadata_file))
+  metadata = File.exists?(path.metadata_file) ? JSON.parse(File.read(path.metadata_file)) : Hash.new
   metadata['win_or_lose'] ||= Array.new
   result.select{|a| a.size == 3}.map(&:last).each_with_index do |win_or_lose,i|
     metadata['win_or_lose'][base+i] = win_or_lose
