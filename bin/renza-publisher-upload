@@ -110,7 +110,7 @@ DESC
     end
       
     video_id = JSON.parse(videos_insert_response.body)['id']
-    metadata['video_ids'] ||= Array.new; metadata[video_number-1] = video_id
+    metadata['video_ids'] ||= Array.new; metadata['video_ids'][video_number-1] = video_id
     File.write(path.metadata_file, metadata.to_json)
     
     # # set thumbnail
