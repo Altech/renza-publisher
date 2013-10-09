@@ -108,6 +108,14 @@ input[:videos].each_with_index do |src_video, disk_number_minus_one|
 
   end
 
-  File.write(path.metadata_file, {location: input[:location], time: input[:time]}.to_json)
-  
+  metadata = JSON.parse(File.read(path.metadata_file))
+  metadata[:win_or_lose] ||= Array.new
+  result.select{|a| a.size == 3}.map(&:last).each_with_index do |win_or_lose,i|
+    metadata[:win_or_lose][base+i] = win_or_lose
+  end
+
+  metadata.merge!({location: input[:location], time: input[:time]})
+
+  File.write(path.metadata_file, metadata.to_json)
+
 end
