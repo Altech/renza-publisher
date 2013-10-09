@@ -61,32 +61,35 @@ input[:videos].each_with_index do |src_video, disk_number_minus_one|
   RenzaPublisher::ImageProcessor.create_images_for_masking(path)
 
   # # 3. search begin-ends.
-  i = 1
-  result = Array.new
-  loop do
-    candidate = path.image_file(i)
+  unless File.exists? path.time_table_file(disk_number)
+    result = Array.new
+    i = 1
+    loop do
+      candidate = path.image_file(i)
 
-    break if not File.exists? candidate
-    
-    if    RenzaPublisher::ImageProcessor.is_same?(samples[:beginning],   candidate, path.masking_file_for_beginning)
-      puts "beginning: #{candidate}".blue
-      result << [i]
-      i += 70
-    elsif RenzaPublisher::ImageProcessor.is_same?(samples[:ending_win],  candidate)
-      puts "ending(win): #{candidate}".green
-      result.last += [i,:win] if result.size > 0 and result.last.size == 1
-      i += 10
-    elsif RenzaPublisher::ImageProcessor.is_same?(samples[:ending_lose], candidate, path.masking_file_for_losing)
-      puts "ending(lose): #{candidate}".green
-      # 1秒前を指定
-      result.last += [i-1,:lose] if result.size > 0 and result.last.size == 1
-      i += 10
-    else
-      i += 1
+      break if not File.exists? candidate
+      
+      if    RenzaPublisher::ImageProcessor.is_same?(samples[:beginning],   candidate, path.masking_file_for_beginning)
+        puts "beginning: #{candidate}".blue
+        result << [i]
+        i += 70
+      elsif RenzaPublisher::ImageProcessor.is_same?(samples[:ending_win],  candidate)
+        puts "ending(win): #{candidate}".green
+        result.last += [i,:win] if result.size > 0 and result.last.size == 1
+        i += 10
+      elsif RenzaPublisher::ImageProcessor.is_same?(samples[:ending_lose], candidate, path.masking_file_for_losing)
+        puts "ending(lose): #{candidate}".green
+        # 1秒前を指定
+        result.last += [i-1,:lose] if result.size > 0 and result.last.size == 1
+        i += 10
+      else
+        i += 1
+      end
     end
+    File.write(path.time_table_file(disk_number), result.to_json)
   end
-
-  File.write(path.time_table_file(disk_number), result.to_json)
+  
+  result = JSON.parse(File.read(path.time_table_file(disk_number)))
 
   # # 4. split the movie.
   base = (1..(disk_number-1)).map{|previous_disk_number|
