@@ -62,7 +62,7 @@ files = Dir.entries(input[:data_directory]).select{|e|
       input[:target] == video_number
     when Range
       input[:target].include? video_number
-    when Nil
+    when NilClass
       true
     end
   else
@@ -120,8 +120,9 @@ DESC
     https.verify_mode = OpenSSL::SSL::VERIFY_NONE
     thumbnail_post_response = https.post(uri.path + '?' + uri.query, File.read(path.thumbnail_file(video_number)), {"Content-Type" => "images/jpeg"})
 
-    puts "All videos are uploaded.".green
   rescue => e
     binding.pry
   end
 end
+
+puts "All videos are uploaded.".green
