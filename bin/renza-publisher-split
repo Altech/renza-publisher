@@ -97,10 +97,10 @@ input[:videos].each_with_index do |src_video, disk_number_minus_one|
     JSON.parse(File.read(path.time_table_file(previous_disk_number))).select{|a| a.size == 3}.size
   }.reduce(0,&:+)
   result.select{|a| a.size == 3}.each_with_index do |times, i|
+    next if File.exists? path.video_file(base+i+1) and File.exists? path.thumbnail_file(base+i+1)
     from, to, _ = times
     thumbnail = path.image_file(from+5)
     
-    rm path.video_file(base+i+1) if File.exists? path.video_file(base+i+1)
     cp thumbnail, path.thumbnail_file(base+i+1)
     
     puts "ffmpeg -i \"#{src_video}\" -ss #{from-3} -t #{to-from+1} \"#{path.video_file(base+i+1)}\""
