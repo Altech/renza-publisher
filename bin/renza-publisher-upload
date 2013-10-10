@@ -103,7 +103,7 @@ DESC
         })
     rescue Faraday::Error::TimeoutError => e
       puts "Faraday::Error::TimeoutError has ocuured.".red
-      sleep 10; retry
+      sleep 20; retry
     rescue => e
       binding.pry
       retry
