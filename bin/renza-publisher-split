@@ -48,8 +48,8 @@ input[:videos].each_with_index do |src_video, i|
   end
 
   # # 2. choose sample images and mask them
-  unless Dir.exists?(path.sample_dir) and path.sample_dir_include_all_samples? or
-         path.sample_files.all?{|sample| RenzaPublisher::ImageProcessor.is_same_size? sample, path.image_file(1)}
+  unless File.exists? path.time_table_file(disk_number) or 
+         (Dir.exists?(path.sample_dir) and path.sample_dir_include_all_samples? and path.sample_files.all?{|sample| RenzaPublisher::ImageProcessor.is_same_size? sample, path.image_file(1)})
     rm_r  path.sample_dir if Dir.exists? path.sample_dir
     mkdir path.sample_dir
       
