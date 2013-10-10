@@ -48,8 +48,11 @@ input[:videos].each_with_index do |src_video, i|
   end
 
   # # 2. choose sample images and mask them
-  unless Dir.exists?(path.sample_dir) and path.sample_dir_include_all_samples?
-    mkdir path.sample_dir unless Dir.exists?(path.sample_dir)
+  unless Dir.exists?(path.sample_dir) and path.sample_dir_include_all_samples? or
+         path.sample_files.all?{|sample| RenzaPublisher::ImageProcessor.is_same_size? sample, path.image_file(1)}
+    rm_r  path.sample_dir if Dir.exists? path.sample_dir
+    mkdir path.sample_dir
+      
     puts "imagesディレクトリからサンプル画像を3つsamplesディレクトリにコピーしてください。"
     puts "そのあと、それぞれを #{path.sample_basenames.map{|s| s + ".jpg"}.join(', ')} にリネームしてください。"
     `open #{path.sample_dir}`; sleep 0.5; `open #{working_dir}`

@@ -8,7 +8,7 @@ module RenzaPublisher::ImageProcessor
     query = Magick::ImageList.new(query_path).first
     src = Magick::ImageList.new(src_path).first
 
-    if query.columns != src.columns or query.rows != src.rows
+    unless is_same_size? query, src
       raise "Sizes of the sample image and query image must be equal"
     end
     
@@ -27,6 +27,24 @@ module RenzaPublisher::ImageProcessor
     [query, src, mask].each do |img| img.destroy! if img end
 
     return result
+  end
+
+  def self.is_same_size?(img1_path_or_img, img2_path_or_img)
+    img1 = case img1_path_or_img
+           when String
+             Magick::ImageList.new(img1_path_or_img).first
+           when Magick::Image
+             img1_path_or_img
+           end
+
+    img2 = case img2_path_or_img
+           when String
+             Magick::ImageList.new(img2_path_or_img).first
+           when Magick::Image
+             img2_path_or_img
+           end
+      
+    return img1.columns == img2.columns && img1.rows == img2.rows
   end
 
   def self.create_images_for_masking(path)
