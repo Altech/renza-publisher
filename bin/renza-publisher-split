@@ -34,41 +34,51 @@ begin
   abort "指定したファイルは存在しません" if not input[:videos].all?{|file| File.exists? file}
 end
 
-input[:videos].each_with_index do |src_video, i|
-  disk_number = i + (input[:disk_number] ? input[:disk_number] : 1)
-  output_dir  = "renza-#{input[:time].strftime("%Y-%m-%d")}"
-  working_dir = output_dir + "/images-disk#{disk_number}"
-  
-  path = RenzaPublisher::Path.new(working_dir, output_dir, File.extname(src_video))
 
-  # # 1. create images
+def input.each_video(&block)
+  self[:videos].each_with_index do |src_video, i|
+    disk_number = i + (self[:disk_number] ? self[:disk_number] : 1)
+    output_dir  = "renza-#{self[:time].strftime("%Y-%m-%d")}"
+    working_dir = output_dir + "/images-disk#{disk_number}"
+    path = RenzaPublisher::Path.new(working_dir, output_dir, File.extname(src_video))
+    block.call(path, working_dir, output_dir, src_video, disk_number)
+  end
+end
+
+# # 1. create images
+input.each_video do |path, working_dir, _, src_video, _|
   unless Dir.exists? working_dir and File.exists? path.image_file(1)
     puts "ffmpeg -i #{src_video} -r 1 -f image2 #{working_dir}/#{RenzaPublisher::Path::IMAGE_FORMAT}"
     puts `ffmpeg -i #{src_video} -r 1 -f image2 #{working_dir}/#{RenzaPublisher::Path::IMAGE_FORMAT}`
   end
+end
 
-  # # 2. choose sample images and mask them
+# # 2. choose sample images and mask them
+input.each_video do |path, working_dir, _, _, disk_number|
   unless File.exists? path.time_table_file(disk_number) or 
          (Dir.exists?(path.sample_dir) and path.sample_dir_include_all_samples? and path.sample_files.all?{|sample| RenzaPublisher::ImageProcessor.is_same_size? sample, path.image_file(1)})
     rm_r  path.sample_dir if Dir.exists? path.sample_dir
     mkdir path.sample_dir
-      
+    
     puts "imagesディレクトリからサンプル画像を3つsamplesディレクトリにコピーしてください。"
     puts "そのあと、それぞれを #{path.sample_basenames.map{|s| s + ".jpg"}.join(', ')} にリネームしてください。"
     `open #{path.sample_dir}`; sleep 0.5; `open #{working_dir}`
     sleep 0.5 until path.sample_dir_include_all_samples?
     puts "サンプル画像を確認しました。"
   end
+end
+
+# # 3. search begin-ends.
+input.each_video do |path, _, _, _, disk_number|
   samples = Hash[path.sample_basenames.map(&:to_sym).zip path.sample_files]
   RenzaPublisher::ImageProcessor.create_images_for_masking(path)
 
-  # # 3. search begin-ends.
   unless File.exists? path.time_table_file(disk_number)
     result = Array.new
     i = 1
     loop do
       candidate = path.image_file(i)
-
+      
       break if not File.exists? candidate
       
       if    RenzaPublisher::ImageProcessor.is_same?(samples[:beginning],   candidate, path.masking_file_for_beginning)
@@ -90,14 +100,17 @@ input[:videos].each_with_index do |src_video, i|
     end
     File.write(path.time_table_file(disk_number), result.to_json)
   end
-  
-  result = JSON.parse(File.read(path.time_table_file(disk_number)))
+end
 
-  # # 4. split the movie.
+# # 4. split the movie.
+input.each_video do |path, _, output_dir, src_video, disk_number|
+  result = JSON.parse(File.read(path.time_table_file(disk_number)))
+  
   base = (1..(disk_number-1)).map{|previous_disk_number|
     abort "#{previous_disk_number}番目のディスクを先に処理してください" if not File.exists? path.time_table_file(previous_disk_number)
     JSON.parse(File.read(path.time_table_file(previous_disk_number))).select{|a| a.size == 3}.size
   }.reduce(0,&:+)
+  
   result.select{|a| a.size == 3}.each_with_index do |times, i|
     next if File.exists? path.video_file(base+i+1) and File.exists? path.thumbnail_file(base+i+1)
     from, to, _ = times
@@ -119,5 +132,4 @@ input[:videos].each_with_index do |src_video, i|
   metadata.merge!({'location' => input[:location], 'time' => input[:time]})
 
   File.write(path.metadata_file, metadata.to_json)
-
 end
