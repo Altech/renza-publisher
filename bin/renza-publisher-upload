@@ -104,6 +104,8 @@ DESC
     rescue Faraday::Error::TimeoutError => e
       puts "Faraday::Error::TimeoutError has ocuured.".red
       sleep 20; retry
+    rescue Google::APIClient::ServerError => e
+      puts "Google::APIClient::ServerError(#{e.message}) has occured."
     rescue => e
       binding.pry
       retry
