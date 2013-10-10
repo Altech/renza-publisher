@@ -73,7 +73,7 @@ files = Dir.entries(input[:data_directory]).select{|e|
 files.each do |file|
   begin
     video_number, video_extension = file[/^vol(\d+)\.(.+)/,1].to_i, file[/^vol(\d+)(\..+)/,2]
-    path = RenzaPublisher::Path.new('/usr/tmp', input[:data_directory], video_extension)
+    path = RenzaPublisher::Path.new('/usr/tmp', input[:data_directory], video_extension, nil)
     metadata = JSON.parse(File.read path.metadata_file)
     location, time, win_or_lose = metadata['location'], Time.parse(metadata['time']), metadata['win_or_lose']
 

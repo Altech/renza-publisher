@@ -2,7 +2,7 @@ class RenzaPublisher
   class Path
     require 'pathname'
 
-    SAMPLE_DIR = "samples"
+    SAMPLE_DIR_FORMAT = "samples_disk%d"
     SAMPLE_BASENAMES = %w[beginning ending_win ending_lose]
     MASKING_FILE_FORMAT = "mask%d.jpg"
     TIME_TABLE_FORMAT = "time_table_disk%d.json"
@@ -13,11 +13,13 @@ class RenzaPublisher
     
     attr_accessor :working_dir, :data_dir
     attr_accessor :video_extension
+    attr_accessor :disk_number
 
-    def initialize(working_dir, data_dir, video_extension)
+    def initialize(working_dir, data_dir, video_extension, disk_number)
       @working_dir, @data_dir = Pathname.new(working_dir), Pathname.new(data_dir)
       [@working_dir, @data_dir].each do |dir| dir.mkpath end
       @video_extension = video_extension
+      @disk_number = disk_number
     end
     
     def image_file(i)
@@ -32,7 +34,7 @@ class RenzaPublisher
       sprintf((@data_dir + THUMBNAIL_FORMAT).to_s, i)
     end
 
-    def time_table_file(disk_number)
+    def time_table_file(disk_number = @disk_number)
       sprintf((@data_dir + TIME_TABLE_FORMAT).to_s, disk_number)
     end
 
@@ -49,7 +51,7 @@ class RenzaPublisher
     end
 
     def sample_dir
-      (@data_dir + SAMPLE_DIR).to_s
+      sprintf((@data_dir +  SAMPLE_DIR_FORMAT).to_s, @disk_number)
     end
 
     def sample_dir_include_all_samples?
@@ -63,7 +65,7 @@ class RenzaPublisher
     end
 
     def sample_files
-      SAMPLE_BASENAMES.map{|s| @data_dir + SAMPLE_DIR + (s + '.jpg')}.map(&:to_s)
+      SAMPLE_BASENAMES.map{|s| sample_dir + '/' + s + '.jpg'}
     end      
 
   end
