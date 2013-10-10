@@ -32,11 +32,10 @@ begin
   abort "撮影が行われた日時を-tオプションで指定してください" if input[:time].nil?
   abort "動画ファイルを指定してください" if input[:videos].nil? or input[:videos].empty?
   abort "指定したファイルは存在しません" if not input[:videos].all?{|file| File.exists? file}
-  abort "ディスクナンバーはファイルが一つの時に指定してください" if ARGV.size > 1 and input[:disk_number]
 end
 
-input[:videos].each_with_index do |src_video, disk_number_minus_one|
-  disk_number = input[:disk_number] ? input[:disk_number] : disk_number_minus_one + 1
+input[:videos].each_with_index do |src_video, i|
+  disk_number = i + (input[:disk_number] ? input[:disk_number] : 1)
   output_dir  = "renza-#{input[:time].strftime("%Y-%m-%d")}"
   working_dir = output_dir + "/images-disk#{disk_number}"
   
