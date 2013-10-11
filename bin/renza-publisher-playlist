@@ -30,7 +30,7 @@ youtube = client.discovered_api('youtube', 'v3')
 client.authorization = RenzaPublisher::OAuthHelper.new(RenzaPublisher::YOUTUBE_READ_WRITE_SCOPE).authorize()
 
 begin
-  path = RenzaPublisher::Path.new('/usr/tmp', input[:data_directory], nil)
+  path = RenzaPublisher::Path.new('/usr/tmp', input[:data_directory], nil, nil)
   metadata = JSON.parse(File.read path.metadata_file)
   location, time, video_ids = metadata['location'], Time.parse(metadata['time']), metadata['video_ids']
 
