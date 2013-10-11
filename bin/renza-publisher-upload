@@ -31,7 +31,8 @@ begin
                      end
   }
   opt.on('-d ONE-LINE-DESCRIPTION','Description displayed under a uploaded video. It must be one line.'){|desc|
-    if desc.lines.size <= 2 and desc.lines.all?{|line| line.chars.size < 39}
+    if desc.lines.size <= 2
+      puts "警告：説明文は1行あたり38文字以内が適切です".red if not desc.lines.all?{|line| line.chars.size < 39}
       case desc.lines.size
       when 2
         input[:description] = desc.chomp
@@ -39,7 +40,7 @@ begin
         input[:description] = desc.chomp + "\n"
       end
     else
-      abort '説明文は2行以内で1行38文字以内です'
+      abort '説明文は2行以内です'
     end
   }
   opt.parse!(ARGV)
