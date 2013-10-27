@@ -87,9 +87,10 @@ files.each do |file|
         description: if input[:description]
                        <<DESC
 #{input[:description]}
+対戦動画サイト：http://vs-seed.net
 DESC
                      else
-                       ""
+                       "対戦動画サイト：http://vs-seed.net"
                      end
       }}
 
