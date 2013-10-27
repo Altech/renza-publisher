@@ -1,0 +1,63 @@
+#!/usr/bin/env ruby
+# -*- coding: utf-8 -*-
+
+$:.unshift File.expand_path('../lib', __dir__)
+
+require 'renza-publisher'
+require 'renza-publisher/path'
+
+require 'optparse'
+require 'fileutils'
+require 'pathname'
+require 'RMagick'
+require 'colorize'
+
+include FileUtils
+
+require 'pry'
+
+begin
+  input = Hash.new
+
+  opt = OptionParser.new("Usage: renza-publisher-mkthumbnail <data-directory> <x1> <y1> <x2> <y2>")
+  opt.parse!(ARGV)
+  input[:data_directory] = ARGV[0]
+  input[:coordinates] = [{x: ARGV[1], y: ARGV[2]}, {x: ARGV[3], y: ARGV[4]}].map{|h| h.map_values(&:to_i)}
+
+  abort "処理済みの動画のディレクトリを指定してください" if input[:data_directory].nil?
+  abort "指定したディレクトリは存在しません" if not Dir.exists? input[:data_directory]
+  abort "切り取る座標は左上と右下を指定してください" unless input[:coordinates][0][:x] < input[:coordinates][1][:x] and input[:coordinates][0][:y] < input[:coordinates][1][:y] 
+end
+
+original_thumbnails = Dir.entries(input[:data_directory]).select{|e| e =~ /^vol\d+_thumb.jpg$/}
+
+path = RenzaPublisher::Path.new('/usr/tmp', input[:data_directory], nil, nil)
+1.upto(1000) do |i|
+  break if not File.exists? path.thumbnail_file(i)
+  original = path.thumbnail_file(i)
+  youtube = path.thumbnail_file(i, 'youtube')
+  vs_seed_net = path.thumbnail_file(i, 'vs_seed_net')
+  
+  img = Magick::ImageList.new original
+
+  img.crop!(Magick::NorthWestGravity,
+            input[:coordinates][0][:x],
+            input[:coordinates][0][:y],
+            input[:coordinates][1][:x] - input[:coordinates][0][:x],
+            input[:coordinates][1][:y] - input[:coordinates][0][:y])
+  img.write vs_seed_net
+  
+  img = Magick::ImageList.new original
+
+  width  = input[:coordinates][1][:x] - input[:coordinates][0][:x]
+  height = width/16*9
+  img.crop!(Magick::NorthWestGravity,
+            input[:coordinates][0][:x],
+            input[:coordinates][0][:y] + height/20,
+            width,
+            height)
+  img.write youtube
+  
+end
+
+puts "All thumbnails were cut.".green

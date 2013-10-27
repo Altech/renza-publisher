@@ -135,7 +135,7 @@ DESC
       https = Net::HTTP.new(uri.host, 443)
       https.use_ssl = true
       https.verify_mode = OpenSSL::SSL::VERIFY_NONE
-      thumbnail_post_response = https.post(uri.path + '?' + uri.query, File.read(path.thumbnail_file(video_number)), {"Content-Type" => "images/jpeg"})
+      thumbnail_post_response = https.post(uri.path + '?' + uri.query, File.read(path.thumbnail_file(video_number, "youtube")), {"Content-Type" => "images/jpeg"})
     rescue Net::ReadTimeout => e
       puts "Net::ReadTimeout has ocuured.".red
       sleep 5; retry

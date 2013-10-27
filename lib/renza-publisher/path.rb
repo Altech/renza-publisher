@@ -30,8 +30,13 @@ class RenzaPublisher
       sprintf((@data_dir + (VIDEO_FORMAT_BASE+@video_extension)).to_s, i)
     end
     
-    def thumbnail_file(i)
-      sprintf((@data_dir + THUMBNAIL_FORMAT).to_s, i)
+    def thumbnail_file(i, suffix = nil)
+      p = sprintf((@data_dir + THUMBNAIL_FORMAT).to_s, i)
+      if suffix.nil? 
+        p
+      else
+        add_suffix p, suffix
+      end
     end
 
     def time_table_file(disk_number = @disk_number)
@@ -66,7 +71,14 @@ class RenzaPublisher
 
     def sample_files
       SAMPLE_BASENAMES.map{|s| sample_dir + '/' + s + '.jpg'}
-    end      
+    end
 
+
+    def add_suffix(path, suffix)
+      path = Pathname.new(path)
+      new_path = path.dirname + (path.basename.to_s[/(.+)(\..+)/,1] + "_" + suffix +  path.basename.to_s[/(.+)(\..+)/,2])
+      new_path.to_s
+    end
+    
   end
 end
