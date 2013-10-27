@@ -1,0 +1,70 @@
+#!/usr/bin/env ruby
+# -*- coding: utf-8 -*-
+
+$:.unshift File.expand_path('../lib', __dir__)
+
+require 'renza-publisher'
+require 'renza-publisher/path'
+require 'renza-publisher/oauth_helper'
+
+require 'optparse'
+require 'json'
+
+require 'google/api_client'
+
+require 'colorize'
+require 'pry'
+
+begin
+  input = Hash.new
+
+  opt = OptionParser.new("Usage: renza-publisher-modify-description <data-directory> <modification>\n  <modification> is Ruby source code to modify the snippet data provided by local variable `s`.")
+  opt.parse!(ARGV)
+  input[:data_directory] = ARGV.first
+
+  abort "処理済みの動画のディレクトリを指定してください" if input[:data_directory].nil?
+  abort "指定したディレクトリは存在しません" if not Dir.exists? input[:data_directory]
+end
+
+# Authorization
+client = Google::APIClient.new(:application_name => $0, :application_version => '1.0')
+youtube = client.discovered_api('youtube', 'v3')
+client.authorization = RenzaPublisher::OAuthHelper.new(RenzaPublisher::YOUTUBE_READ_WRITE_SCOPE).authorize()
+
+files = Dir.entries(input[:data_directory]).select{|e| e =~ /^vol(\d+)\./}
+
+files.each do |file|
+  begin
+    video_number, = file[/^vol(\d+)\.(.+)/,1].to_i
+    path = RenzaPublisher::Path.new('/usr/tmp', input[:data_directory], nil, nil)
+    metadata = JSON.parse(File.read path.metadata_file)
+    video_id = metadata['video_ids'][video_number-1]
+
+    videos_list_response = client.execute!(
+        api_method: youtube.videos.list,
+        parameters: {
+          :id => video_id,
+          :part => 'snippet'
+        })
+
+    # modification info 
+    s = JSON.parse(videos_list_response.body)['items'][0]['snippet']
+    eval ARGV[1]
+    
+    videos_update_response = client.execute!(
+      api_method: youtube.videos.update,
+      body_object: {
+        id: video_id,
+        snippet: s },
+      parameters: {
+        :part => %w[id snippet]
+      })
+
+    puts "Vol.#{video_number} was modified.".green
+  rescue => e
+    binding.pry
+    retry
+  end  
+end
+
+puts "All videos was just uploaded.".green
