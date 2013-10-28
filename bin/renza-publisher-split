@@ -114,7 +114,7 @@ input.each_video do |path, src_video, disk_number|
   result.select{|a| a.size == 3}.each_with_index do |times, i|
     next if File.exists? path.video_file(base+i+1) and File.exists? path.thumbnail_file(base+i+1)
     from, to, _ = times
-    thumbnail = path.image_file(from+5)
+    thumbnail = path.image_file(from+7)
     
     cp thumbnail, path.thumbnail_file(base+i+1)
     
