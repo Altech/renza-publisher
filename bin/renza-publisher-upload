@@ -82,7 +82,7 @@ files.each do |file|
     body = {
       snippet: {
         title: "【連ザ2】#{time.strftime("%Y年%m月%d日")} #{location} Vol.#{video_number}",
-        tags: %w[連ザ 連ザ2 対戦動画 対戦会] << win_or_lose[video_number-1],
+        tags: %w[連ザ 連ザ2 対戦動画 対戦会] << location << win_or_lose[video_number-1],
         categoryId: 20,
         description: if input[:description]
                        <<DESC
