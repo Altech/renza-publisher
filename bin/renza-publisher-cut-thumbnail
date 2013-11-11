@@ -19,7 +19,9 @@ require 'pry'
 begin
   input = Hash.new
 
-  opt = OptionParser.new("Usage: renza-publisher-mkthumbnail <data-directory> <x1> <y1> <x2> <y2>")
+  opt = OptionParser.new("Usage: renza-publisher-mkthumbnail [--wide] <data-directory> <x1> <y1> <x2> <y2>")
+  input[:wide] = false
+  opt.on('--wide'){ input[:wide] = true }
   opt.parse!(ARGV)
   input[:data_directory] = ARGV[0]
   input[:coordinates] = [{x: ARGV[1], y: ARGV[2]}, {x: ARGV[3], y: ARGV[4]}].map{|h| h.map_values(&:to_i)}
@@ -33,7 +35,7 @@ original_thumbnails = Dir.entries(input[:data_directory]).select{|e| e =~ /^vol\
 
 path = RenzaPublisher::Path.new('/usr/tmp', input[:data_directory], nil, nil)
 1.upto(1000) do |i|
-  break if not File.exists? path.thumbnail_file(i)
+  next if not File.exists? path.thumbnail_file(i)
   original = path.thumbnail_file(i)
   youtube = path.thumbnail_file(i, 'youtube')
   vs_seed_net = path.thumbnail_file(i, 'vs_seed_net')
@@ -50,10 +52,10 @@ path = RenzaPublisher::Path.new('/usr/tmp', input[:data_directory], nil, nil)
   img = Magick::ImageList.new original
 
   width  = input[:coordinates][1][:x] - input[:coordinates][0][:x]
-  height = width/16*9
+  height = input[:wide] ? (input[:coordinates][1][:y] - input[:coordinates][0][:y]) : (width/16*9)
   img.crop!(Magick::NorthWestGravity,
             input[:coordinates][0][:x],
-            input[:coordinates][0][:y] + height/20,
+            input[:coordinates][0][:y] + (input[:wide] ? 0 : height/20),
             width,
             height)
   img.write youtube
