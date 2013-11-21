@@ -86,11 +86,9 @@ files.each do |file|
         categoryId: 20,
         description: if input[:description]
                        <<DESC
+動画一覧：http://vs-seed.net/events/#{time.strftime("%Y-%m-%d")}
 #{input[:description]}
-対戦動画サイト：http://vs-seed.net
 DESC
-                     else
-                       "対戦動画サイト：http://vs-seed.net"
                      end
       }}
 
