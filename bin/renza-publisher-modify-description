@@ -31,11 +31,10 @@ client = Google::APIClient.new(:application_name => $0, :application_version => 
 youtube = client.discovered_api('youtube', 'v3')
 client.authorization = RenzaPublisher::OAuthHelper.new(RenzaPublisher::YOUTUBE_READ_WRITE_SCOPE).authorize()
 
-files = Dir.entries(input[:data_directory]).select{|e| e =~ /^vol(\d+)\./}
-
+files = Dir.entries(input[:data_directory]).select{|e| e =~ /^vol(\d+)_thumb\./}
 files.each do |file|
   begin
-    video_number, = file[/^vol(\d+)\.(.+)/,1].to_i
+    video_number, = file[/^vol(\d+)_thumb\./,1].to_i
     path = RenzaPublisher::Path.new('/usr/tmp', input[:data_directory], nil, nil)
     metadata = JSON.parse(File.read path.metadata_file)
     video_id = metadata['video_ids'][video_number-1]
@@ -47,10 +46,10 @@ files.each do |file|
           :part => 'snippet'
         })
 
-    # modification info 
+    # modification info
     s = JSON.parse(videos_list_response.body)['items'][0]['snippet']
     eval ARGV[1]
-    
+
     videos_update_response = client.execute!(
       api_method: youtube.videos.update,
       body_object: {
@@ -64,7 +63,7 @@ files.each do |file|
   rescue => e
     binding.pry
     retry
-  end  
+  end
 end
 
 puts "All videos was just uploaded.".green
