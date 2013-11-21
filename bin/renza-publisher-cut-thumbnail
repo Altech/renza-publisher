@@ -39,27 +39,29 @@ path = RenzaPublisher::Path.new('/usr/tmp', input[:data_directory], nil, nil)
   original = path.thumbnail_file(i)
   youtube = path.thumbnail_file(i, 'youtube')
   vs_seed_net = path.thumbnail_file(i, 'vs_seed_net')
-  
-  img = Magick::ImageList.new original
 
-  img.crop!(Magick::NorthWestGravity,
-            input[:coordinates][0][:x],
-            input[:coordinates][0][:y],
-            input[:coordinates][1][:x] - input[:coordinates][0][:x],
-            input[:coordinates][1][:y] - input[:coordinates][0][:y])
-  img.write vs_seed_net
-  
   img = Magick::ImageList.new original
 
   width  = input[:coordinates][1][:x] - input[:coordinates][0][:x]
-  height = input[:wide] ? (input[:coordinates][1][:y] - input[:coordinates][0][:y]) : (width/16*9)
+  height = input[:coordinates][1][:y] - input[:coordinates][0][:y]
   img.crop!(Magick::NorthWestGravity,
             input[:coordinates][0][:x],
-            input[:coordinates][0][:y] + (input[:wide] ? 0 : height/20),
+            input[:coordinates][0][:y],
+            width,
+            height)
+  img = img.resize(width,width*(3.0/4.0))
+  img.write vs_seed_net
+
+  img = Magick::ImageList.new vs_seed_net
+  width  = img.columns
+  height = width/16*9
+  img.crop!(Magick::NorthWestGravity,
+            0,
+            0,
             width,
             height)
   img.write youtube
-  
+
 end
 
 puts "All thumbnails were cut.".green
