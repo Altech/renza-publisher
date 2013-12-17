@@ -18,7 +18,7 @@ require 'pry'
 begin
   input = Hash.new
 
-  opt = OptionParser.new("Usage: renza-publisher-modify-description <data-directory> <modification>\n  <modification> is Ruby source code to modify the snippet data provided by local variable `s`.")
+  opt = OptionParser.new("Usage: renza-publisher-modify-all-videos <data-directory> <modification>\n  <modification> is Ruby source code to modify the snippet data and status data provided by local variable `snippet` and `status`.")
   opt.parse!(ARGV)
   input[:data_directory] = ARGV.first
 
@@ -43,20 +43,23 @@ files.each do |file|
         api_method: youtube.videos.list,
         parameters: {
           :id => video_id,
-          :part => 'snippet'
+          :part => "snippet, status"
         })
 
     # modification info
-    s = JSON.parse(videos_list_response.body)['items'][0]['snippet']
+    snippet = JSON.parse(videos_list_response.body)['items'][0]['snippet']
+    status  = JSON.parse(videos_list_response.body)['items'][0]['status']
     eval ARGV[1]
 
     videos_update_response = client.execute!(
       api_method: youtube.videos.update,
       body_object: {
         id: video_id,
-        snippet: s },
+        snippet: snippet,
+        status: status
+      },
       parameters: {
-        :part => %w[id snippet]
+        :part => "id, snippet, status"
       })
 
     puts "Vol.#{video_number} was modified.".green
