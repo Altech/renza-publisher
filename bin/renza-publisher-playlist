@@ -8,6 +8,7 @@ require 'renza-publisher/path'
 require 'renza-publisher/oauth_helper'
 
 require 'optparse'
+require 'json'
 
 require 'google/api_client'
 

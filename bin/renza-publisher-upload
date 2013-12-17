@@ -10,6 +10,7 @@ require 'renza-publisher/oauth_helper'
 require 'net/http'
 require 'net/https'
 require 'optparse'
+require 'json'
 
 require 'google/api_client'
 
@@ -82,7 +83,7 @@ files.each do |file|
     body = {
       snippet: {
         title: "【連ザ2】#{time.strftime("%Y年%m月%d日")} #{location} Vol.#{video_number}",
-        tags: %w[連ザ 連ザ2 対戦動画 対戦会] << location << win_or_lose[video_number-1],
+        tags: %w[連ザ 連ザ2 対戦動画 対戦会] << location,
         categoryId: 20,
         description: if input[:description]
                        <<DESC
@@ -90,7 +91,11 @@ files.each do |file|
 #{input[:description]}
 DESC
                      end
-      }}
+      },
+      status: {
+        privacyStatus: 'private'
+      }
+    }
 
     begin
       videos_insert_response = client.execute!(
