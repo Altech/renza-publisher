@@ -87,7 +87,7 @@ input.each_video do |path, _, _|
         puts "beginning: #{candidate}".blue
         result << [i]
         i += 10
-      elsif RenzaPublisher::ImageProcessor.is_same?(samples[:ending_win],  candidate)
+      elsif RenzaPublisher::ImageProcessor.is_same?(samples[:ending_win],  candidate, "", 0.002)
         puts "ending(win): #{candidate}".green
         result.last += [i,:win] if result.size > 0 and result.last.size == 1
         i += 10
