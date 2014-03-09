@@ -25,6 +25,8 @@ begin
   opt.on('-l LOCATION','--location', '動画が撮影された場所. e.g. 秋葉原レジャーランド') {|s| input[:location] = s}
   opt.on('-t TIME','--time', '動画が撮影された日時. e.g. "2012-10-03 15:00:00"') {|d| input[:time] = Time.parse(d)} 
   opt.on('-d NUMBER','--disk-number', '特定のディスクを処理する場合のディスク番号（1始まり）'){|n| input[:disk_number] = n.to_i if n}
+  opt.on('-s SEAT','--seat', '動画が撮影された座席（a1,a2,b1,b2のいずれか）'){|s| input[:seat] = s; SEAT = s}
+  opt.on('-k','--skip', '生成済みの動画を上書きせずにスキップする'){|s| input[:skip] = true}
   opt.parse!(ARGV)
   input[:videos] = ARGV.dup
 
@@ -49,7 +51,7 @@ end
 input.each_video do |path, src_video, _|
   unless Dir.exists? path.working_dir and File.exists? path.image_file(1)
     puts "ffmpeg -i #{src_video} -r 1 -f image2 #{path.working_dir}/#{RenzaPublisher::Path::IMAGE_FORMAT}"
-    puts `ffmpeg -i #{src_video} -r 1 -f image2 #{path.working_dir}/#{RenzaPublisher::Path::IMAGE_FORMAT}`
+    puts `ffmpeg -i #{src_video} -r 1 -f image2 #{path.working_dir}/#{RenzaPublisher::Path::IMAGE_FORMAT}`.yellow
   end
 end
 
@@ -112,15 +114,15 @@ input.each_video do |path, src_video, disk_number|
   }.reduce(0,&:+)
   
   result.select{|a| a.size == 3}.each_with_index do |times, i|
-    # next if File.exists? path.video_file(base+i+1) and File.exists? path.thumbnail_file(base+i+1)
     from, to, _ = times
     thumbnail = path.image_file(from+7)
     
     cp thumbnail, path.thumbnail_file(base+i+1)
-    
-    puts "ffmpeg -i \"#{src_video}\" -qscale 0 -ss #{from-3} -t #{to-from+1} \"#{path.video_file(base+i+1)}\""
-    puts `ffmpeg -i "#{src_video}"   -qscale 0 -ss #{from-3} -t #{to-from+1}  "#{path.video_file(base+i+1)}"`
 
+    if not File.exists? path.video_file(base+i+1) or not input[:skip]
+      puts "ffmpeg -i \"#{src_video}\" -qscale 0 -ss #{from-3} -t #{to-from+1} \"#{path.video_file(base+i+1)}\"".yellow
+      puts `ffmpeg -i "#{src_video}"   -qscale 0 -ss #{from-3} -t #{to-from+1}  "#{path.video_file(base+i+1)}"`
+    end
   end
 
   metadata = File.exists?(path.metadata_file) ? JSON.parse(File.read(path.metadata_file)) : Hash.new

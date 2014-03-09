@@ -82,7 +82,7 @@ files.each do |file|
     # # upload video
     body = {
       snippet: {
-        title: "【連ザ2】#{time.strftime("%Y年%m月%d日")} #{location} Vol.#{video_number}",
+        title: "【連ザ2】#{time.strftime("%Y年%m月%d日")} #{location} Vol.#{video_number}" + (metadata['seat'] ? "-#{metadata['seat'].upcase}" : ""),
         tags: %w[連ザ 連ザ2 対戦動画 対戦会] << location,
         categoryId: 20,
         description: if input[:description]
@@ -90,6 +90,8 @@ files.each do |file|
 動画一覧：http://vs-seed.net/events/#{time.strftime("%Y-%m-%d")}
 #{input[:description]}
 DESC
+                     else
+                       "動画一覧：http://vs-seed.net/events/#{time.strftime("%Y-%m-%d")}"
                      end
       },
       status: {
@@ -119,11 +121,10 @@ DESC
       binding.pry
       retry
     end
-      
+
     video_id = JSON.parse(videos_insert_response.body)['id']
     metadata['video_ids'] ||= Array.new; metadata['video_ids'][video_number-1] = video_id
     File.write(path.metadata_file, metadata.to_json)
-    
     # # set thumbnail
     begin
       thumbnail_set_response = client.execute!(
@@ -146,7 +147,7 @@ DESC
       binding.pry
       retry
     end
-    
+
     puts "Vol.#{video_number} was uploaded.".green
   rescue => e
     binding.pry
