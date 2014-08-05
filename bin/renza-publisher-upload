@@ -114,7 +114,7 @@ DESC
     rescue Google::APIClient::ServerError => e
       puts "Google::APIClient::ServerError(#{e.message}) has occured."
       sleep 60; retry
-    rescue Errno::EPIP => e
+    rescue Errno::EPIPE => e
       puts "Errno::EPIP(#{e.message}) has occured."
       sleep 20; retry
     rescue => e
