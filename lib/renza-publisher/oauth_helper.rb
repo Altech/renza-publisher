@@ -34,6 +34,7 @@ class OAuthHelper
       }
     end
 
+    puts("open " + url.green)
     Launchy.open(url)
     server.start()
   
