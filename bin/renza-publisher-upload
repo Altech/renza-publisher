@@ -44,6 +44,7 @@ begin
       abort '説明文は2行以内です'
     end
   }
+  opt.on('-s SEAT','--seat', 'アップロードする座席を限定（a1,a2,b1,b2のいずれか）'){|s| input[:seat] = s.downcase}
   opt.parse!(ARGV)
   input[:data_directory] = ARGV.first
 
@@ -57,32 +58,37 @@ youtube = client.discovered_api('youtube', 'v3')
 client.authorization = RenzaPublisher::OAuthHelper.new(RenzaPublisher::YOUTUBE_READ_WRITE_SCOPE).authorize()
 
 files = Dir.entries(input[:data_directory]).select{|e|
-  if e =~ /^vol(\d+)\./
-    video_number = $1.to_i
-    case input[:target]
-    when Numeric
-      input[:target] == video_number
-    when Range
-      input[:target].include? video_number
-    when NilClass
-      true
-    end
+  if e =~ /^vol(\d+)_(..)\./
+    video_number, seat = $1.to_i, $2
+    is_good_vol = case input[:target]
+                  when Numeric
+                    input[:target] == video_number
+                  when Range
+                    input[:target].include? video_number
+                  when NilClass
+                    true
+                  end
+    is_good_seat = input[:seat].nil? || input[:seat] == seat
+    is_good_vol && is_good_seat
   else
     false
   end
 }
+pp files
+exit!
 
 files.each do |file|
   begin
-    video_number, video_extension = file[/^vol(\d+)\.(.+)/,1].to_i, file[/^vol(\d+)(\..+)/,2]
+    file =~ /^vol(\d+)_(..)\.(.+)/
+    video_number, seat, video_extension = $1.to_i, $2, $3
     path = RenzaPublisher::Path.new('/usr/tmp', input[:data_directory], video_extension, nil)
     metadata = JSON.parse(File.read path.metadata_file)
-    location, time, win_or_lose = metadata['location'], Time.parse(metadata['time']), metadata['win_or_lose']
+    location, time = metadata['location'], Time.parse(metadata['time'])
 
     # # upload video
     body = {
       snippet: {
-        title: "【連ザ2】#{time.strftime("%Y年%m月%d日")} #{location} Vol.#{video_number}" + (metadata['seat'] ? "-#{metadata['seat'].upcase}" : ""),
+        title: "【連ザ2】#{time.strftime("%Y年%m月%d日")} #{location} Vol.#{video_number}" + seat.upcase,
         tags: %w[連ザ 連ザ2 対戦動画 対戦会] << location,
         categoryId: 20,
         description: if input[:description]
@@ -123,7 +129,7 @@ DESC
     end
 
     video_id = JSON.parse(videos_insert_response.body)['id']
-    metadata['video_ids'] ||= Array.new; metadata['video_ids'][video_number-1] = video_id
+    metadata[seat]['video_ids'] ||= Array.new; metadata[seat]['video_ids'][video_number-1] = video_id
     File.write(path.metadata_file, metadata.to_json)
     # # set thumbnail
     begin
@@ -148,7 +154,7 @@ DESC
       retry
     end
 
-    puts "Vol.#{video_number} was uploaded.".green
+    puts "Vol.#{video_number}(#{seat}) was uploaded.".green
   rescue => e
     binding.pry
   end

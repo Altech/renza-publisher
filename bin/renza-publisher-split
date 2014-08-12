@@ -25,9 +25,12 @@ begin
   opt.on('-l LOCATION','--location', '動画が撮影された場所. e.g. 秋葉原レジャーランド') {|s| input[:location] = s}
   opt.on('-t TIME','--time', '動画が撮影された日時. e.g. "2012-10-03 15:00:00"') {|d| input[:time] = Time.parse(d)} 
   opt.on('-d NUMBER','--disk-number', '特定のディスクを処理する場合のディスク番号（1始まり）'){|n| input[:disk_number] = n.to_i if n}
-  opt.on('-s SEAT','--seat', '動画が撮影された座席（a1,a2,b1,b2のいずれか）'){|s| input[:seat] = s; SEAT = s.downcase}
+  opt.on('-s SEAT','--seat', '動画が撮影された座席（a1,a2,b1,b2のいずれか）'){|s| input[:seat] = s.downcase}
+  opt.on('-f','--follow-another-seat', '相方の席の動画に従って処理する'){|s| input[:follow_another_seat] = true; }
   opt.on('-k','--skip', '生成済みの動画を上書きせずにスキップする'){|s| input[:skip] = true}
+  opt.on('-w','--without-split', '動画の分割は行わない'){|s| input[:without_split] = true}
   opt.parse!(ARGV)
+  input[:seat] ||= 'a1'
   input[:videos] = ARGV.dup
 
   abort "撮影が行われた場所を-lオプションで指定してください" if input[:location].nil?
@@ -36,14 +39,25 @@ begin
   abort "指定したファイルは存在しません" if not input[:videos].all?{|file| File.exists? file}
 end
 
+seat = input[:seat]
+def seat.another
+  case self
+  when 'a1' then 'a2'
+  when 'a2' then 'a1'
+  when 'b1' then 'b2'
+  when 'b2' then 'b1'
+  else
+    raise "seat is invalid!"
+  end
+end
 
 def input.each_video(&block)
   self[:videos].each_with_index do |src_video, i|
     disk_number = i + (self[:disk_number] ? self[:disk_number] : 1)
     output_dir  = "renza-#{self[:time].strftime("%Y-%m-%d")}"
-    working_dir = output_dir + "/images-disk#{disk_number}"
-    path = RenzaPublisher::Path.new(working_dir, output_dir, File.extname(src_video), disk_number)
-    block.call(path, src_video, disk_number)
+    working_dir = output_dir + "/images_#{self[:seat]}_disk#{disk_number}"
+    path = RenzaPublisher::Path.new(working_dir, output_dir, File.extname(src_video), disk_number, self[:seat])
+    block.call(path, src_video, disk_number, self[:seat])
   end
 end
 
@@ -53,7 +67,7 @@ input.each_video do |path, src_video, _|
     puts "ffmpeg -i #{src_video} -r 1 -f image2 #{path.working_dir}/#{RenzaPublisher::Path::IMAGE_FORMAT}"
     puts `ffmpeg -i #{src_video} -r 1 -f image2 #{path.working_dir}/#{RenzaPublisher::Path::IMAGE_FORMAT}`.yellow
   end
-end
+end unless input[:follow_another_seat]
 
 # # 2. choose sample images and mask them
 input.each_video do |path, _, _|
@@ -61,14 +75,14 @@ input.each_video do |path, _, _|
          (Dir.exists? path.sample_dir and path.sample_dir_include_all_samples? and path.sample_files.all?{|sample| RenzaPublisher::ImageProcessor.is_same_size? sample, path.image_file(1)})
     rm_r  path.sample_dir if Dir.exists? path.sample_dir
     mkdir path.sample_dir
-    
+
     puts "imagesディレクトリからサンプル画像を3つsamplesディレクトリにコピーしてください。"
     puts "そのあと、それぞれを #{path.sample_basenames.map{|s| s + ".jpg"}.join(', ')} にリネームしてください。"
     `open #{path.sample_dir}`; sleep 0.5; `open #{path.working_dir}`
     sleep 0.5 until path.sample_dir_include_all_samples?
     puts "サンプル画像を確認しました。"
   end
-end
+end unless input[:follow_another_seat]
 
 # # 3. search begin-ends.
 input.each_video do |path, _, _|
@@ -80,9 +94,9 @@ input.each_video do |path, _, _|
     i = 1
     loop do
       candidate = path.image_file(i)
-      
+
       break if not File.exists? candidate
-      
+
       if    RenzaPublisher::ImageProcessor.is_same?(samples[:beginning],   candidate, path.masking_file_for_beginning)
         puts "beginning: #{candidate}".blue
         result << [i]
@@ -102,22 +116,28 @@ input.each_video do |path, _, _|
     end
     File.write(path.time_table_file, result.to_json)
   end
-end
+end unless input[:follow_another_seat]
 
 # # 4. split the movie.
-input.each_video do |path, src_video, disk_number|
+input.each_video do |path, src_video, disk_number, seat|
+  if input[:follow_another_seat]
+    cp path.time_table_file(seat.another), path.time_table_file
+  end
+
   result = JSON.parse(File.read(path.time_table_file))
-  
+
   base = (1..(disk_number-1)).map{|previous_disk_number|
     abort "#{previous_disk_number}番目のディスクを先に処理してください" if not File.exists? path.time_table_file(previous_disk_number)
     JSON.parse(File.read(path.time_table_file(previous_disk_number))).select{|a| a.size == 3}.size
   }.reduce(0,&:+)
-  
+
   result.select{|a| a.size == 3}.each_with_index do |times, i|
     from, to, _ = times
-    thumbnail = path.image_file(from+7)
-    
-    cp thumbnail, path.thumbnail_file(base+i+1)
+
+    if seat == 'a1'
+      thumbnail = path.image_file(from+7) 
+      cp thumbnail, path.thumbnail_file(base+i+1)
+    end
 
     if not File.exists? path.video_file(base+i+1) or not input[:skip]
       puts "ffmpeg -i \"#{src_video}\" -qscale 0 -ss #{from-3} -t #{to-from+1} \"#{path.video_file(base+i+1)}\"".yellow
@@ -126,12 +146,15 @@ input.each_video do |path, src_video, disk_number|
   end
 
   metadata = File.exists?(path.metadata_file) ? JSON.parse(File.read(path.metadata_file)) : Hash.new
-  metadata['win_or_lose'] ||= Array.new
+  metadata[seat] ||= Hash.new
+  metadata[seat]['win_or_lose'] ||= Array.new
   result.select{|a| a.size == 3}.map(&:last).each_with_index do |win_or_lose,i|
-    metadata['win_or_lose'][base+i] = win_or_lose
+    metadata[seat]['win_or_lose'][base+i] = win_or_lose
   end
 
-  metadata.merge!({'location' => input[:location], 'time' => input[:time]})
+  if seat == 'a1'
+    metadata.merge!({'location' => input[:location], 'time' => input[:time]})
+  end
 
   File.write(path.metadata_file, metadata.to_json)
-end
+end unless input[:without_split]

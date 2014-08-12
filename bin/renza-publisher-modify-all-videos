@@ -31,7 +31,7 @@ client = Google::APIClient.new(:application_name => $0, :application_version => 
 youtube = client.discovered_api('youtube', 'v3')
 client.authorization = RenzaPublisher::OAuthHelper.new(RenzaPublisher::YOUTUBE_READ_WRITE_SCOPE).authorize()
 
-files = Dir.entries(input[:data_directory]).select{|e| e =~ /^vol(\d+)_thumb\./}
+files = Dir.entries(input[:data_directory]).select{|e| e =~ /^vol(\d+)__\./}
 files.each do |file|
   begin
     video_number, = file[/^vol(\d+)_thumb\./,1].to_i

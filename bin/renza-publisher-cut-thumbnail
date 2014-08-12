@@ -33,8 +33,6 @@ begin
   abort "切り取る座標は左上と右下を指定してください" unless input[:coordinates][0][:x] < input[:coordinates][1][:x] and input[:coordinates][0][:y] < input[:coordinates][1][:y] 
 end
 
-original_thumbnails = Dir.entries(input[:data_directory]).select{|e| e =~ /^vol\d+_thumb.jpg$/}
-
 path = RenzaPublisher::Path.new('/usr/tmp', input[:data_directory], nil, nil)
 1.upto(1000) do |i|
   next if input[:from] and i < input[:from]
