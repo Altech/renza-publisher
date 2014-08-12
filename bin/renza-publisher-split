@@ -140,8 +140,8 @@ input.each_video do |path, src_video, disk_number, seat|
     end
 
     if not File.exists? path.video_file(base+i+1) or not input[:skip]
-      puts "ffmpeg -i \"#{src_video}\" -qscale 0 -ss #{from-3} -t #{to-from+1} \"#{path.video_file(base+i+1)}\"".yellow
-      puts `ffmpeg -i "#{src_video}"   -qscale 0 -ss #{from-3} -t #{to-from+1}  "#{path.video_file(base+i+1)}"`
+      puts "ffmpeg -i \"#{src_video}\" -c copy -ss #{from-3} -t #{to-from+1} \"#{path.video_file(base+i+1)}\"".yellow
+      puts `ffmpeg -i "#{src_video}"   -c copy -ss #{from-3} -t #{to-from+1}  "#{path.video_file(base+i+1)}"`
     end
   end
 
