@@ -29,6 +29,7 @@ begin
   opt.on('-f','--follow-another-seat', '相方の席の動画に従って処理する'){|s| input[:follow_another_seat] = true; }
   opt.on('-k','--skip', '生成済みの動画を上書きせずにスキップする'){|s| input[:skip] = true}
   opt.on('-w','--without-split', '動画の分割は行わない'){|s| input[:without_split] = true}
+  opt.on('-r','--re-encode', '分割時に動画の再エンコードを行なう'){|s| input[:re_encode] = true}
   opt.parse!(ARGV)
   input[:seat] ||= 'a1'
   input[:videos] = ARGV.dup
@@ -140,8 +141,8 @@ input.each_video do |path, src_video, disk_number, seat|
     end
 
     if not File.exists? path.video_file(base+i+1) or not input[:skip]
-      puts "ffmpeg -i \"#{src_video}\" -c copy -ss #{from-3} -t #{to-from+1} \"#{path.video_file(base+i+1)}\"".yellow
-      puts `ffmpeg -i "#{src_video}"   -c copy -ss #{from-3} -t #{to-from+1}  "#{path.video_file(base+i+1)}"`
+      puts "ffmpeg -i \"#{src_video}\" #{'-c copy' unless input[:re_encode]} -ss #{from-3} -t #{to-from+1} \"#{path.video_file(base+i+1)}\"".yellow
+      puts `ffmpeg -i "#{src_video}"   #{'-c copy' unless input[:re_encode]} -ss #{from-3} -t #{to-from+1}  "#{path.video_file(base+i+1)}"`
     end
   end
 
