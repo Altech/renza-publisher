@@ -33,6 +33,7 @@ class RenzaPublisher
     
     def thumbnail_file(i, suffix = nil)
       dir = suffix.nil? ? @data_dir : @data_dir + 'thumbnails'
+      Dir.mkdir dir unless Dir.exists? dir
       p = sprintf((dir + THUMBNAIL_FORMAT).to_s, i)
       if suffix.nil? 
         p

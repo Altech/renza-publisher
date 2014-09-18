@@ -31,13 +31,14 @@ client = Google::APIClient.new(:application_name => $0, :application_version => 
 youtube = client.discovered_api('youtube', 'v3')
 client.authorization = RenzaPublisher::OAuthHelper.new(RenzaPublisher::YOUTUBE_READ_WRITE_SCOPE).authorize()
 
-files = Dir.entries(input[:data_directory]).select{|e| e =~ /^vol(\d+)__\./}
+files = Dir.entries(input[:data_directory]).select{|e| e =~ /^vol(\d+)_(..)(\..+)/}
 files.each do |file|
   begin
-    video_number, = file[/^vol(\d+)_thumb\./,1].to_i
-    path = RenzaPublisher::Path.new('/usr/tmp', input[:data_directory], nil, nil)
+    file =~ /^vol(\d+)_(..)(\..+)/
+    video_number, seat = $1.to_i, $2
+    path = RenzaPublisher::Path.new('/usr/tmp', input[:data_directory], nil, nil, seat)
     metadata = JSON.parse(File.read path.metadata_file)
-    video_id = metadata['video_ids'][video_number-1]
+    video_id = metadata[seat]['video_ids'][video_number-1]
 
     videos_list_response = client.execute!(
         api_method: youtube.videos.list,
@@ -62,7 +63,7 @@ files.each do |file|
         :part => "id, snippet, status"
       })
 
-    puts "Vol.#{video_number} was modified.".green
+    puts "Vol.#{video_number}(#{seat}) was modified.".green
   rescue => e
     binding.pry
     retry
