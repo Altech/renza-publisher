@@ -116,10 +116,10 @@ DESC
       puts "Faraday::Error::TimeoutError has ocuured.".red
       sleep 20; retry
     rescue Google::APIClient::ServerError => e
-      puts "Google::APIClient::ServerError(#{e.message}) has occured."
+      puts "Google::APIClient::ServerError(#{e.message}) has occured.".red
       sleep 60; retry
     rescue Errno::EPIPE => e
-      puts "Errno::EPIP(#{e.message}) has occured."
+      puts "Errno::EPIP(#{e.message}) has occured.".red
       sleep 20; retry
     rescue => e
       binding.pry
@@ -147,6 +147,8 @@ DESC
     rescue Net::ReadTimeout => e
       puts "Net::ReadTimeout has ocuured.".red
       sleep 5; retry
+    rescue Errno::ETIMEDOUT => e
+      puts "Errno::ETIMEDOUT has ocuured.".red
     rescue => e
       binding.pry
       retry
