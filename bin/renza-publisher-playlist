@@ -31,50 +31,58 @@ youtube = client.discovered_api('youtube', 'v3')
 client.authorization = RenzaPublisher::OAuthHelper.new(RenzaPublisher::YOUTUBE_READ_WRITE_SCOPE).authorize()
 
 begin
-  path = RenzaPublisher::Path.new('/usr/tmp', input[:data_directory], nil, nil)
+  path = RenzaPublisher::Path.new('/usr/tmp', input[:data_directory], nil, nil, nil)
   metadata = JSON.parse(File.read path.metadata_file)
-  location, time, video_ids = metadata['location'], Time.parse(metadata['time']), metadata['video_ids']
+  location, time = metadata['location'], Time.parse(metadata['time'])
 
-  # # create playlist
-  body = {
-    snippet: {
-      title: "#{time.strftime("%Y年%m月%d日")} #{location}",
-      description: time.strftime("%Y年%m月%d日")+"に"+location+"で行われた連ザ2の対戦",
-      tags: %w[連ザ 連ザ2 対戦動画 対戦会]
-    },
-    status: {
-      privacyStatus: "public"
-    }}
+  %w[a1 a2 b1 b2].each do |seat|
+    next if metadata[seat].nil?
+    video_ids = metadata[seat]['video_ids']
 
-  playlist_insert_response = client.execute!(
-                                           api_method: youtube.playlists.insert,
-                                           body_object: body,
-                                           parameters: {
-                                             :part => body.keys.join(',')
-                                             })
-
-  playlist_id = JSON.parse(playlist_insert_response.body)['id']
-  
-  # # insert playlist items
-  video_ids.each_with_index do |video_id,i|
+    # # create playlist
     body = {
       snippet: {
-        playlistId: playlist_id,
-        resourceId: {videoId: video_id, kind:'youtube#video'},
-        position: i
+        title: "#{time.strftime("%Y年%m月%d日")} #{location} 視点#{seat.upcase}",
+        description: time.strftime("%Y年%m月%d日")+"に"+location+"で行われた連ザ2の対戦",
+        tags: %w[連ザ 連ザ2 対戦動画 対戦会]
+      },
+      status: {
+        privacyStatus: "public"
       }}
-    
-    playlist_item_insert_response = client.execute!(
-                                                    api_method: youtube.playlist_items.insert,
-                                                    body_object: body,
-                                                    parameters: {
-                                                      :part => body.keys.join(',')
-                                                    })
+
+    playlist_insert_response = client.execute!(
+      api_method: youtube.playlists.insert,
+      body_object: body,
+      parameters: {
+        :part => body.keys.join(',')
+      })
+
+    playlist_id = JSON.parse(playlist_insert_response.body)['id']
+
+    # # insert playlist items
+    video_ids.each_with_index do |video_id,i|
+      body = {
+        snippet: {
+          playlistId: playlist_id,
+          resourceId: {videoId: video_id, kind:'youtube#video'},
+          position: i
+        }}
+
+      playlist_item_insert_response = client.execute!(
+        api_method: youtube.playlist_items.insert,
+        body_object: body,
+        parameters: {
+          :part => body.keys.join(',')
+        })
+    end
+
+    puts "Videos of #{seat.upcase} are inserted to http://www.youtube.com/playlist?list=#{playlist_id}".green
+
+    metadata[seat]['playlist_id'] = playlist_id
+    File.write(path.metadata_file, metadata.to_json)
   end
-  
-  metadata['playlist_id'] = playlist_id
-  File.write(path.metadata_file, metadata.to_json)
-  
+
+
   puts "All videos are inserted to http://www.youtube.com/playlist?list=#{playlist_id}".green
 rescue => e
   binding.pry
