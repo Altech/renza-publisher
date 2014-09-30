@@ -121,6 +121,9 @@ DESC
     rescue Errno::EPIPE => e
       puts "Errno::EPIP(#{e.message}) has occured.".red
       sleep 20; retry
+    rescue Faraday::Error::ConnectionFailed => e
+      puts "Faraday::Error::ConnectionFailed has occured.".red
+      sleep 120; retry
     rescue => e
       binding.pry
       retry
